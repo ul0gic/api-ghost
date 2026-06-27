@@ -33,3 +33,6 @@ dmg_staging/
 *.mobileprovision
 .env
 .env.*
+
+# Local signing override — holds DEVELOPMENT_TEAM; never commit (Config/Shared.xcconfig is tracked)
+Config/Local.xcconfig
