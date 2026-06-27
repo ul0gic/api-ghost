@@ -1,0 +1,60 @@
+name: SwiftMITM (package)
+
+# OPTIONAL / advisory. The Packages/SwiftMITM SwiftNIO engine builds standalone
+# and is NOT yet linked into the app, so it gets its own check that only runs
+# when the package itself changes. Keep this OUT of required status checks until
+# the package is wired into the app (Phase 4).
+on:
+  push:
+    branches: [v2]
+    paths:
+      - 'Packages/SwiftMITM/**'
+      - '.github/workflows/swiftmitm.yml'
+  pull_request:
+    branches: [v2]
+    paths:
+      - 'Packages/SwiftMITM/**'
+      - '.github/workflows/swiftmitm.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: swiftmitm-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  XCODE_VERSION: latest-stable
+
+jobs:
+  build-test:
+    name: swift build + test
+    runs-on: macos-26
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: Packages/SwiftMITM
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1.7.0
+        with:
+          xcode-version: ${{ env.XCODE_VERSION }}
+
+      - name: Cache SwiftPM build
+        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: Packages/SwiftMITM/.build
+          key: spm-mitm-${{ runner.os }}-${{ hashFiles('Packages/SwiftMITM/Package.resolved') }}
+          restore-keys: spm-mitm-${{ runner.os }}-
+
+      - name: Build
+        run: swift build
+
+      - name: Test
+        run: swift test
