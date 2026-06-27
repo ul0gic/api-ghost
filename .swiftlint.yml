@@ -5,6 +5,7 @@ excluded:
   - DerivedData
   - build
   - .build
+  - Packages/SwiftMITM/.build
   - Pods
   - .project
   - .claude
