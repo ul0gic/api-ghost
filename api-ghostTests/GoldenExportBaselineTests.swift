@@ -31,31 +31,36 @@ struct GoldenExportBaselineTests {
 
     // MARK: - JSON
 
-    @Test func jsonHeadersBodies() throws {
+    @Test
+    func jsonHeadersBodies() throws {
         let data = try export(.json, includeHeaders: true, includeBodies: true)
         try Golden.verify(try OutputNormalizer.canonicalString(from: data), name: "json_headers_bodies.json")
     }
 
-    @Test func jsonMinimal() throws {
+    @Test
+    func jsonMinimal() throws {
         let data = try export(.json, includeHeaders: false, includeBodies: false)
         try Golden.verify(try OutputNormalizer.canonicalString(from: data), name: "json_minimal.json")
     }
 
     // MARK: - HAR
 
-    @Test func harHeadersBodies() throws {
+    @Test
+    func harHeadersBodies() throws {
         let data = try export(.har, includeHeaders: true, includeBodies: true)
         try Golden.verify(try OutputNormalizer.canonicalString(from: data), name: "har_headers_bodies.json")
     }
 
-    @Test func harMinimal() throws {
+    @Test
+    func harMinimal() throws {
         let data = try export(.har, includeHeaders: false, includeBodies: false)
         try Golden.verify(try OutputNormalizer.canonicalString(from: data), name: "har_minimal.json")
     }
 
     // MARK: - SQLite
 
-    @Test func sqliteContentPreserved() throws {
+    @Test
+    func sqliteContentPreserved() throws {
         try FixtureDatabase.reseed()
         let url = exportedURL()
         defer { try? FileManager.default.removeItem(at: url) }
@@ -65,14 +70,16 @@ struct GoldenExportBaselineTests {
 
     // MARK: - includeFiltered is now a no-op
 
-    @Test func jsonIncludeFilteredIsNoOp() throws {
+    @Test
+    func jsonIncludeFilteredIsNoOp() throws {
         let unfiltered = try export(.json, includeHeaders: true, includeBodies: true, includeFiltered: false)
         let filtered = try export(.json, includeHeaders: true, includeBodies: true, includeFiltered: true)
         #expect(try OutputNormalizer.canonicalString(from: unfiltered)
             == OutputNormalizer.canonicalString(from: filtered))
     }
 
-    @Test func harIncludeFilteredIsNoOp() throws {
+    @Test
+    func harIncludeFilteredIsNoOp() throws {
         let unfiltered = try export(.har, includeHeaders: true, includeBodies: true, includeFiltered: false)
         let filtered = try export(.har, includeHeaders: true, includeBodies: true, includeFiltered: true)
         #expect(try OutputNormalizer.canonicalString(from: unfiltered)

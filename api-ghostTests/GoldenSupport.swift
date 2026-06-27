@@ -182,7 +182,7 @@ enum OutputNormalizer {
             withJSONObject: normalized,
             options: [.prettyPrinted, .sortedKeys, .fragmentsAllowed]
         )
-        return String(decoding: canonical, as: UTF8.self)
+        return String(bytes: canonical, encoding: .utf8) ?? ""
     }
 
     static func canonicalString(from object: Any) throws -> String {
@@ -190,7 +190,7 @@ enum OutputNormalizer {
             withJSONObject: normalize(object),
             options: [.prettyPrinted, .sortedKeys, .fragmentsAllowed]
         )
-        return String(decoding: canonical, as: UTF8.self)
+        return String(bytes: canonical, encoding: .utf8) ?? ""
     }
 
     private static func normalize(_ value: Any) -> Any {

@@ -4,7 +4,8 @@ import Testing
 
 @testable import APIGhost
 
-@Suite struct MigrationRoundTripTests {
+@Suite
+struct MigrationRoundTripTests {
     private struct SeedRow {
         let uuid: String
         let method: String
@@ -17,14 +18,36 @@ import Testing
     }
 
     private static let seedRows: [SeedRow] = [
-        SeedRow(uuid: "RT-0001", method: "GET", host: "api.example.com", path: "/v1/users",
-                statusCode: 200, wasFiltered: false, filterReason: nil, requestBody: nil),
-        SeedRow(uuid: "RT-0002", method: "POST", host: "api.example.com", path: "/v1/login",
-                statusCode: 201, wasFiltered: false, filterReason: nil,
-                requestBody: Data(#"{"user":"a"}"#.utf8)),
-        SeedRow(uuid: "RT-0003-legacy-filtered", method: "GET", host: "analytics.tracker.io",
-                path: "/collect", statusCode: 200, wasFiltered: true,
-                filterReason: "Analytics/Telemetry", requestBody: nil)
+        SeedRow(
+            uuid: "RT-0001",
+            method: "GET",
+            host: "api.example.com",
+            path: "/v1/users",
+            statusCode: 200,
+            wasFiltered: false,
+            filterReason: nil,
+            requestBody: nil
+        ),
+        SeedRow(
+            uuid: "RT-0002",
+            method: "POST",
+            host: "api.example.com",
+            path: "/v1/login",
+            statusCode: 201,
+            wasFiltered: false,
+            filterReason: nil,
+            requestBody: Data(#"{"user":"a"}"#.utf8)
+        ),
+        SeedRow(
+            uuid: "RT-0003-legacy-filtered",
+            method: "GET",
+            host: "analytics.tracker.io",
+            path: "/collect",
+            statusCode: 200,
+            wasFiltered: true,
+            filterReason: "Analytics/Telemetry",
+            requestBody: nil
+        )
     ]
 
     private func makeMigrator() -> DatabaseMigrator {
@@ -33,7 +56,8 @@ import Testing
         return migrator
     }
 
-    @Test func v3MigrationPreservesDataAndDropsFilterColumns() throws {
+    @Test
+    func v3MigrationPreservesDataAndDropsFilterColumns() throws {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID().uuidString).db")
         defer { try? FileManager.default.removeItem(at: url) }
 

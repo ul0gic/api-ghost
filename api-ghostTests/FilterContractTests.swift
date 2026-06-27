@@ -9,7 +9,8 @@ private let defaultOnCategoryIDs = [
 
 // MARK: - On-disk contract (no singleton)
 
-@Suite struct BlocklistContractTests {
+@Suite
+struct BlocklistContractTests {
     private func loadBlocklist() throws -> BlocklistFile {
         let url = try #require(
             Bundle.main.url(forResource: "DefaultBlocklist", withExtension: "json"),
@@ -19,13 +20,15 @@ private let defaultOnCategoryIDs = [
         return try JSONDecoder().decode(BlocklistFile.self, from: data)
     }
 
-    @Test func decodesVersion3WithEightCategories() throws {
+    @Test
+    func decodesVersion3WithEightCategories() throws {
         let file = try loadBlocklist()
         #expect(file.version == 3)
         #expect(file.categories.count == 8)
     }
 
-    @Test func socialOffByDefaultEveryOtherCategoryOn() throws {
+    @Test
+    func socialOffByDefaultEveryOtherCategoryOn() throws {
         let file = try loadBlocklist()
         let byID = Dictionary(uniqueKeysWithValues: file.categories.map { ($0.id, $0) })
 
@@ -38,7 +41,8 @@ private let defaultOnCategoryIDs = [
         #expect(social.enabledByDefault == false, "social must ship OFF by default")
     }
 
-    @Test func domainPathContentTypeCountsPreserved() throws {
+    @Test
+    func domainPathContentTypeCountsPreserved() throws {
         let file = try loadBlocklist()
         let domains = file.categories.reduce(0) { $0 + $1.domains.count }
         let paths = file.categories.reduce(0) { $0 + $1.pathPatterns.count }
@@ -48,7 +52,8 @@ private let defaultOnCategoryIDs = [
         #expect(contentTypes == 10)
     }
 
-    @Test func toFilterCategoryTagsEveryRuleWithCategoryIDAndNotCustom() throws {
+    @Test
+    func toFilterCategoryTagsEveryRuleWithCategoryIDAndNotCustom() throws {
         let file = try loadBlocklist()
         for category in file.categories {
             let mapped = category.toFilterCategory()
@@ -68,10 +73,12 @@ private let defaultOnCategoryIDs = [
 
 // MARK: - Runtime activation contract (singleton)
 
-@Suite(.serialized) struct NoiseFilterContractTests {
+@Suite(.serialized)
+struct NoiseFilterContractTests {
     private var filter: NoiseFilter { NoiseFilter.shared }
 
-    @Test func categoriesContainAllEightWithSocialOff() throws {
+    @Test
+    func categoriesContainAllEightWithSocialOff() throws {
         let categories = filter.categories
         #expect(categories.count == 8)
 
@@ -83,19 +90,22 @@ private let defaultOnCategoryIDs = [
         #expect(social.isEnabledByDefault == false)
     }
 
-    @Test func defaultOnCategoryBlocksAnalyticsDomain() {
+    @Test
+    func defaultOnCategoryBlocksAnalyticsDomain() {
         filter.isEnabled = true
         #expect(filter.isDomainBlocked("www.google-analytics.com").blocked == true)
     }
 
-    @Test func socialDomainsAreNotBlockedByDefault() {
+    @Test
+    func socialDomainsAreNotBlockedByDefault() {
         filter.isEnabled = true
         for host in ["x.com", "facebook.com", "reddit.com", "spotify.com", "t.co"] {
             #expect(filter.isDomainBlocked(host).blocked == false, "\(host) must not be blocked by default")
         }
     }
 
-    @Test func prebuiltRulesAreTaggedAndNotCustom() {
+    @Test
+    func prebuiltRulesAreTaggedAndNotCustom() {
         for category in filter.categories {
             for rule in category.rules {
                 #expect(rule.categoryID != nil, "prebuilt rule \(rule.pattern) must carry a categoryID")
@@ -104,7 +114,8 @@ private let defaultOnCategoryIDs = [
         }
     }
 
-    @Test func customAddedRuleIsMarkedCustom() throws {
+    @Test
+    func customAddedRuleIsMarkedCustom() throws {
         let pattern = "unit-test-custom.example"
         filter.addDomainRule(pattern, isWildcard: false)
         defer { filter.removeDomainRule(pattern) }
