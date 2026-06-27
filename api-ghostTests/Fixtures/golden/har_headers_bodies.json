@@ -1,0 +1,344 @@
+{
+  "log" : {
+    "creator" : {
+      "name" : "APIGhost",
+      "version" : "1.0"
+    },
+    "entries" : [
+      {
+        "cache" : {
+
+        },
+        "request" : {
+          "bodySize" : 0,
+          "cookies" : [
+
+          ],
+          "headers" : [
+            {
+              "name" : "Accept",
+              "value" : "application\/json"
+            },
+            {
+              "name" : "X-Trace-Id",
+              "value" : "abc"
+            }
+          ],
+          "headersSize" : 48,
+          "httpVersion" : "HTTP\/1.1",
+          "method" : "GET",
+          "queryString" : [
+            {
+              "name" : "limit",
+              "value" : "10"
+            },
+            {
+              "name" : "page",
+              "value" : "2"
+            }
+          ],
+          "url" : "https:\/\/api.example.com\/v1\/users?page=2&limit=10"
+        },
+        "response" : {
+          "bodySize" : 11,
+          "content" : {
+            "mimeType" : "application\/json",
+            "size" : 11,
+            "text" : "{\"ok\":true}"
+          },
+          "cookies" : [
+
+          ],
+          "headers" : [
+            {
+              "name" : "Content-Type",
+              "value" : "application\/json"
+            },
+            {
+              "name" : "X-RateLimit",
+              "value" : "99"
+            }
+          ],
+          "headersSize" : 54,
+          "httpVersion" : "HTTP\/1.1",
+          "redirectURL" : "",
+          "status" : 200,
+          "statusText" : "OK"
+        },
+        "startedDateTime" : "2023-11-14T22:13:25Z",
+        "time" : 42,
+        "timings" : {
+          "receive" : 0,
+          "send" : 0,
+          "wait" : 42
+        }
+      },
+      {
+        "cache" : {
+
+        },
+        "request" : {
+          "bodySize" : 23,
+          "cookies" : [
+
+          ],
+          "headers" : [
+            {
+              "name" : "Content-Type",
+              "value" : "application\/json"
+            }
+          ],
+          "headersSize" : 35,
+          "httpVersion" : "HTTP\/1.1",
+          "method" : "POST",
+          "postData" : {
+            "mimeType" : "application\/json",
+            "text" : "{\"user\":\"a\",\"pass\":\"b\"}"
+          },
+          "queryString" : [
+
+          ],
+          "url" : "https:\/\/api.example.com\/v1\/login"
+        },
+        "response" : {
+          "bodySize" : 15,
+          "content" : {
+            "mimeType" : "application\/json",
+            "size" : 15,
+            "text" : "{\"token\":\"xyz\"}"
+          },
+          "cookies" : [
+
+          ],
+          "headers" : [
+            {
+              "name" : "Content-Type",
+              "value" : "application\/json"
+            }
+          ],
+          "headersSize" : 35,
+          "httpVersion" : "HTTP\/1.1",
+          "redirectURL" : "",
+          "status" : 201,
+          "statusText" : "Created"
+        },
+        "startedDateTime" : "2023-11-14T22:13:24Z",
+        "time" : 88,
+        "timings" : {
+          "receive" : 0,
+          "send" : 0,
+          "wait" : 88
+        }
+      },
+      {
+        "cache" : {
+
+        },
+        "request" : {
+          "bodySize" : 0,
+          "cookies" : [
+
+          ],
+          "headers" : [
+
+          ],
+          "headersSize" : -1,
+          "httpVersion" : "HTTP\/1.1",
+          "method" : "GET",
+          "queryString" : [
+
+          ],
+          "url" : "http:\/\/cdn.example.org\/missing.png"
+        },
+        "response" : {
+          "bodySize" : 0,
+          "content" : {
+            "mimeType" : "application\/octet-stream",
+            "size" : 0
+          },
+          "cookies" : [
+
+          ],
+          "headers" : [
+
+          ],
+          "headersSize" : -1,
+          "httpVersion" : "HTTP\/1.1",
+          "redirectURL" : "",
+          "status" : 0,
+          "statusText" : ""
+        },
+        "startedDateTime" : "2023-11-14T22:13:23Z",
+        "time" : 0,
+        "timings" : {
+          "receive" : 0,
+          "send" : 0,
+          "wait" : 0
+        }
+      },
+      {
+        "cache" : {
+
+        },
+        "request" : {
+          "bodySize" : 0,
+          "cookies" : [
+
+          ],
+          "headers" : [
+            {
+              "name" : "Accept",
+              "value" : "*\/*"
+            }
+          ],
+          "headersSize" : 16,
+          "httpVersion" : "HTTP\/1.1",
+          "method" : "GET",
+          "queryString" : [
+            {
+              "name" : "t",
+              "value" : "pageview"
+            },
+            {
+              "name" : "v",
+              "value" : "1"
+            }
+          ],
+          "url" : "https:\/\/analytics.tracker.io\/collect?v=1&t=pageview"
+        },
+        "response" : {
+          "bodySize" : 0,
+          "content" : {
+            "mimeType" : "application\/octet-stream",
+            "size" : 0
+          },
+          "cookies" : [
+
+          ],
+          "headers" : [
+
+          ],
+          "headersSize" : -1,
+          "httpVersion" : "HTTP\/1.1",
+          "redirectURL" : "",
+          "status" : 200,
+          "statusText" : "OK"
+        },
+        "startedDateTime" : "2023-11-14T22:13:22Z",
+        "time" : 7,
+        "timings" : {
+          "receive" : 0,
+          "send" : 0,
+          "wait" : 7
+        }
+      },
+      {
+        "cache" : {
+
+        },
+        "request" : {
+          "bodySize" : 11,
+          "cookies" : [
+
+          ],
+          "headers" : [
+            {
+              "name" : "Content-Type",
+              "value" : "application\/json"
+            }
+          ],
+          "headersSize" : 35,
+          "httpVersion" : "HTTP\/1.1",
+          "method" : "POST",
+          "postData" : {
+            "mimeType" : "application\/json",
+            "text" : "{\"item\":42}"
+          },
+          "queryString" : [
+
+          ],
+          "url" : "https:\/\/api.example.com:8443\/v1\/orders"
+        },
+        "response" : {
+          "bodySize" : 4,
+          "content" : {
+            "mimeType" : "text\/plain",
+            "size" : 4,
+            "text" : "boom"
+          },
+          "cookies" : [
+
+          ],
+          "headers" : [
+            {
+              "name" : "Content-Type",
+              "value" : "text\/plain"
+            }
+          ],
+          "headersSize" : 29,
+          "httpVersion" : "HTTP\/1.1",
+          "redirectURL" : "",
+          "status" : 500,
+          "statusText" : "Internal Server Error"
+        },
+        "startedDateTime" : "2023-11-14T22:13:21Z",
+        "time" : 1200,
+        "timings" : {
+          "receive" : 0,
+          "send" : 0,
+          "wait" : 1200
+        }
+      },
+      {
+        "cache" : {
+
+        },
+        "request" : {
+          "bodySize" : 0,
+          "cookies" : [
+
+          ],
+          "headers" : [
+            {
+              "name" : "Accept",
+              "value" : "application\/json"
+            }
+          ],
+          "headersSize" : 29,
+          "httpVersion" : "HTTP\/1.1",
+          "method" : "GET",
+          "queryString" : [
+
+          ],
+          "url" : "https:\/\/api.example.com\/v1\/ping"
+        },
+        "response" : {
+          "bodySize" : 0,
+          "content" : {
+            "mimeType" : "application\/octet-stream",
+            "size" : 0
+          },
+          "cookies" : [
+
+          ],
+          "headers" : [
+
+          ],
+          "headersSize" : -1,
+          "httpVersion" : "HTTP\/1.1",
+          "redirectURL" : "",
+          "status" : 0,
+          "statusText" : ""
+        },
+        "startedDateTime" : "2023-11-14T22:13:20Z",
+        "time" : 0,
+        "timings" : {
+          "receive" : 0,
+          "send" : 0,
+          "wait" : 0
+        }
+      }
+    ],
+    "version" : "1.2"
+  }
+}

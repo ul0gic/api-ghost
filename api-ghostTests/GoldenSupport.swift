@@ -1,0 +1,336 @@
+//
+//  GoldenSupport.swift
+//  api-ghostTests
+//
+//  Deterministic fixtures, DB isolation guard, output normalization, and
+//  golden-file IO for the export regression baseline (build-plan 1.1.2).
+//
+
+import Foundation
+import GRDB
+import Testing
+
+@testable import APIGhost
+
+// MARK: - Deterministic capture fixtures
+
+/// A small, representative, fully deterministic set of captures on the CURRENT
+/// (pre-migration) schema. Distinct whole-second timestamps guarantee a stable
+/// `timestamp DESC` ordering in the export. Fixed UUIDs keep output reproducible.
+enum CaptureFixtures {
+    /// 2023-11-14T22:13:20Z — a fixed instant; ISO8601 renders identically on any machine (UTC).
+    static let baseEpoch: TimeInterval = 1_700_000_000
+
+    static func all() -> [Capture] {
+        [
+            getWithQuery(),
+            postWithBody(),
+            sparseGet404(),
+            analyticsBeacon(),
+            postOnPort500(),
+            requestWithoutResponse()
+        ]
+    }
+
+    private static func at(_ offset: TimeInterval) -> Date {
+        Date(timeIntervalSince1970: baseEpoch + offset)
+    }
+
+    private static func body(_ string: String) -> Data { Data(string.utf8) }
+
+    static func getWithQuery() -> Capture {
+        let response = body(#"{"ok":true}"#)
+        return Capture(
+            uuid: "00000000-0000-0000-0000-0000000000A1",
+            timestamp: at(5),
+            sessionId: "session-fixed",
+            method: "GET",
+            scheme: "https",
+            host: "api.example.com",
+            path: "/v1/users",
+            query: "page=2&limit=10",
+            requestHeaders: #"{"Accept":"application/json","X-Trace-Id":"abc"}"#,
+            requestBodySize: 0,
+            statusCode: 200,
+            statusMessage: "OK",
+            responseHeaders: #"{"Content-Type":"application/json","X-RateLimit":"99"}"#,
+            responseBody: response,
+            responseBodySize: response.count,
+            contentType: "application/json",
+            durationMs: 42
+        )
+    }
+
+    static func postWithBody() -> Capture {
+        let request = body(#"{"user":"a","pass":"b"}"#)
+        let response = body(#"{"token":"xyz"}"#)
+        return Capture(
+            uuid: "00000000-0000-0000-0000-0000000000A2",
+            timestamp: at(4),
+            sessionId: "session-fixed",
+            method: "POST",
+            scheme: "https",
+            host: "api.example.com",
+            path: "/v1/login",
+            requestHeaders: #"{"Content-Type":"application/json"}"#,
+            requestBody: request,
+            requestBodySize: request.count,
+            statusCode: 201,
+            statusMessage: "Created",
+            responseHeaders: #"{"Content-Type":"application/json"}"#,
+            responseBody: response,
+            responseBodySize: response.count,
+            contentType: "application/json",
+            durationMs: 88
+        )
+    }
+
+    /// Exercises null optionals: no query, no headers, no bodies, no status text/content-type/duration.
+    static func sparseGet404() -> Capture {
+        Capture(
+            uuid: "00000000-0000-0000-0000-0000000000A3",
+            timestamp: at(3),
+            method: "GET",
+            scheme: "http",
+            host: "cdn.example.org",
+            path: "/missing.png"
+        )
+    }
+
+    /// A tracker-host beacon. Pre-v3 this fixture carried was_filtered=true; post-v3 that
+    /// column is gone and it is just another stored capture (the legacy filtered case is
+    /// exercised by the migration round-trip test, MigrationRoundTripTests).
+    static func analyticsBeacon() -> Capture {
+        Capture(
+            uuid: "00000000-0000-0000-0000-0000000000A4",
+            timestamp: at(2),
+            method: "GET",
+            scheme: "https",
+            host: "analytics.tracker.io",
+            path: "/collect",
+            query: "v=1&t=pageview",
+            requestHeaders: #"{"Accept":"*/*"}"#,
+            statusCode: 200,
+            statusMessage: "OK",
+            durationMs: 7
+        )
+    }
+
+    static func postOnPort500() -> Capture {
+        let request = body(#"{"item":42}"#)
+        let response = body("boom")
+        return Capture(
+            uuid: "00000000-0000-0000-0000-0000000000A5",
+            timestamp: at(1),
+            method: "POST",
+            scheme: "https",
+            host: "api.example.com",
+            port: 8443,
+            path: "/v1/orders",
+            query: "",
+            requestHeaders: #"{"Content-Type":"application/json"}"#,
+            requestBody: request,
+            requestBodySize: request.count,
+            statusCode: 500,
+            statusMessage: "Internal Server Error",
+            responseHeaders: #"{"Content-Type":"text/plain"}"#,
+            responseBody: response,
+            responseBodySize: response.count,
+            contentType: "text/plain",
+            durationMs: 1200
+        )
+    }
+
+    /// A request captured before any response arrived — null status/response fields.
+    static func requestWithoutResponse() -> Capture {
+        Capture(
+            uuid: "00000000-0000-0000-0000-0000000000A6",
+            timestamp: at(0),
+            method: "GET",
+            scheme: "https",
+            host: "api.example.com",
+            path: "/v1/ping",
+            requestHeaders: #"{"Accept":"application/json"}"#
+        )
+    }
+}
+
+// MARK: - Isolated database seeding
+
+/// Seeds the shared database with fixtures, guarding against ever touching the
+/// real user database. The export pipeline is hardwired to `DatabaseManager.shared`
+/// (no DI seam), so isolation is achieved by redirecting `CFFIXED_USER_HOME` in the
+/// test scheme; this guard refuses to mutate anything if that redirect is not in effect.
+enum FixtureDatabase {
+    enum FixtureError: Error, CustomStringConvertible {
+        case unsafeDatabasePath(String)
+
+        var description: String {
+            switch self {
+            case .unsafeDatabasePath(let path):
+                return """
+                Refusing to seed: database is not isolated (path: \(path)). \
+                Run via the shared 'api-ghost' scheme so CFFIXED_USER_HOME redirects \
+                the DB into an isolated test home.
+                """
+            }
+        }
+    }
+
+    /// The sentinel folder name that the redirected test home must contain.
+    static let isolationSentinel = "TestHome"
+
+    static func assertIsolated() throws {
+        let path = DatabaseManager.shared.path ?? ""
+        guard path.contains(isolationSentinel) else {
+            throw FixtureError.unsafeDatabasePath(path)
+        }
+    }
+
+    /// Wipes the isolated DB and inserts the given fixtures in a single transaction.
+    static func reseed(with captures: [Capture] = CaptureFixtures.all()) throws {
+        try assertIsolated()
+        try DatabaseManager.shared.wipeAllData()
+        try CaptureStore.shared.saveAll(captures)
+    }
+}
+
+// MARK: - Output normalization
+
+/// Canonicalizes export output so byte comparisons are stable. JSON export already
+/// uses `.sortedKeys`, but HAR does not, and header/query arrays inherit dictionary
+/// iteration order. This re-serializes with sorted keys and sorts any array of
+/// `{name, value}` pairs, yielding a deterministic representation for both formats.
+enum OutputNormalizer {
+    static func canonicalString(from data: Data) throws -> String {
+        let object = try JSONSerialization.jsonObject(with: data, options: [.fragmentsAllowed])
+        let normalized = normalize(object)
+        let canonical = try JSONSerialization.data(
+            withJSONObject: normalized,
+            options: [.prettyPrinted, .sortedKeys, .fragmentsAllowed]
+        )
+        return String(decoding: canonical, as: UTF8.self)
+    }
+
+    static func canonicalString(from object: Any) throws -> String {
+        let canonical = try JSONSerialization.data(
+            withJSONObject: normalize(object),
+            options: [.prettyPrinted, .sortedKeys, .fragmentsAllowed]
+        )
+        return String(decoding: canonical, as: UTF8.self)
+    }
+
+    private static func normalize(_ value: Any) -> Any {
+        if let dict = value as? [String: Any] {
+            return dict.mapValues { normalize($0) }
+        }
+        if let array = value as? [Any] {
+            let mapped = array.map { normalize($0) }
+            if isNameValueArray(mapped) {
+                return mapped.sorted { lhs, rhs in compareNameValue(lhs, rhs) }
+            }
+            return mapped
+        }
+        return value
+    }
+
+    private static func isNameValueArray(_ array: [Any]) -> Bool {
+        guard !array.isEmpty else { return false }
+        return array.allSatisfy { ($0 as? [String: Any])?["name"] is String }
+    }
+
+    private static func compareNameValue(_ lhs: Any, _ rhs: Any) -> Bool {
+        let left = lhs as? [String: Any]
+        let right = rhs as? [String: Any]
+        let leftName = left?["name"] as? String ?? ""
+        let rightName = right?["name"] as? String ?? ""
+        if leftName != rightName { return leftName < rightName }
+        let leftValue = left?["value"] as? String ?? ""
+        let rightValue = right?["value"] as? String ?? ""
+        return leftValue < rightValue
+    }
+}
+
+// MARK: - SQLite content extraction
+
+/// Reads the captures out of an exported SQLite file (excluding the auto-increment
+/// `id`, which is not stable across runs) into a canonical, comparable form. This
+/// proves the SQLite export preserves all capture data rather than byte-comparing a
+/// non-deterministic database file.
+enum SQLiteContent {
+    static func canonicalString(ofExportAt url: URL) throws -> String {
+        let queue = try DatabaseQueue(path: url.path)
+        let captures = try queue.read { db in
+            try Capture.order(Column("uuid")).fetchAll(db)
+        }
+        let rows = captures.map { dictionary(for: $0) }
+        return try OutputNormalizer.canonicalString(from: rows)
+    }
+
+    private static func dictionary(for capture: Capture) -> [String: Any] {
+        var dict: [String: Any] = [
+            "uuid": capture.uuid,
+            "timestamp": ISO8601DateFormatter().string(from: capture.timestamp),
+            "method": capture.method,
+            "scheme": capture.scheme,
+            "host": capture.host,
+            "path": capture.path,
+            "requestBodySize": capture.requestBodySize,
+            "responseBodySize": capture.responseBodySize,
+            "trafficType": capture.trafficType.rawValue,
+            "isStreaming": capture.isStreaming
+        ]
+        dict["port"] = capture.port
+        dict["query"] = capture.query
+        dict["sessionId"] = capture.sessionId
+        dict["requestHeaders"] = capture.requestHeaders
+        dict["responseHeaders"] = capture.responseHeaders
+        dict["requestBody"] = capture.requestBody.flatMap { String(data: $0, encoding: .utf8) }
+        dict["responseBody"] = capture.responseBody.flatMap { String(data: $0, encoding: .utf8) }
+        dict["statusCode"] = capture.statusCode
+        dict["statusMessage"] = capture.statusMessage
+        dict["contentType"] = capture.contentType
+        dict["durationMs"] = capture.durationMs
+        dict["graphqlOperationName"] = capture.graphqlOperationName
+        dict["graphqlOperationType"] = capture.graphqlOperationType
+        dict["sourceTabId"] = capture.sourceTabId
+        return dict.compactMapValues { $0 }
+    }
+}
+
+// MARK: - Golden file IO
+
+/// Compares canonical output against a committed golden fixture. On a missing golden
+/// (or with `RECORD_GOLDEN` set) it writes the fixture next to this source file via
+/// `#filePath`; a missing golden without record mode is reported as a failure so CI
+/// can never pass silently on absent baselines.
+enum Golden {
+    static func goldenDirectory(file: StaticString = #filePath) -> URL {
+        URL(fileURLWithPath: "\(file)")
+            .deletingLastPathComponent()
+            .appendingPathComponent("Fixtures/golden", isDirectory: true)
+    }
+
+    static func verify(_ actual: String, name: String) throws {
+        let directory = goldenDirectory()
+        let url = directory.appendingPathComponent(name)
+        let recording = ProcessInfo.processInfo.environment["RECORD_GOLDEN"] != nil
+        let exists = FileManager.default.fileExists(atPath: url.path)
+
+        if recording || !exists {
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            try actual.write(to: url, atomically: true, encoding: .utf8)
+            if !recording {
+                Issue.record("Golden '\(name)' was missing and has been generated; re-run to verify.")
+            }
+            return
+        }
+
+        let expected = try String(contentsOf: url, encoding: .utf8)
+        if actual != expected {
+            let actualURL = directory.appendingPathComponent(name + ".actual")
+            try? actual.write(to: actualURL, atomically: true, encoding: .utf8)
+        }
+        #expect(actual == expected, "Export output diverged from golden '\(name)'")
+    }
+}

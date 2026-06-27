@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Bundle Display Name -->
+    <key>CFBundleDisplayName</key>
+    <string>APIGhost</string>
+
+    <!-- Bundle Name -->
+    <key>CFBundleName</key>
+    <string>APIGhost</string>
+
+    <!-- App Category -->
+    <key>LSApplicationCategoryType</key>
+    <string>public.app-category.developer-tools</string>
+
+    <!-- Minimum System Version -->
+    <key>LSMinimumSystemVersion</key>
+    <string>$(MACOSX_DEPLOYMENT_TARGET)</string>
+
+    <!-- Copyright -->
+    <key>NSHumanReadableCopyright</key>
+    <string>Copyright 2025 CoreLift. All rights reserved.</string>
+
+    <!-- Supports Secure Coding -->
+    <key>NSSupportsSecureCoding</key>
+    <true/>
+
+    <!-- Principal Class -->
+    <key>NSPrincipalClass</key>
+    <string>NSApplication</string>
+
+    <!-- High Resolution Capable -->
+    <key>NSHighResolutionCapable</key>
+    <true/>
+
+    <!-- Supports Automatic Graphics Switching -->
+    <key>NSSupportsAutomaticGraphicsSwitching</key>
+    <true/>
+
+    <!-- Apple Events Usage Description (for automation/AppleScript) -->
+    <key>NSAppleEventsUsageDescription</key>
+    <string>APIGhost needs permission to install certificates for HTTPS traffic capture.</string>
+</dict>
+</plist>

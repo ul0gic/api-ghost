@@ -1,0 +1,35 @@
+# macOS
+.DS_Store
+
+# Xcode build artifacts
+build/
+DerivedData/
+*.xcuserstate
+*.xcuserdatad/
+xcuserdata/
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Packages/*/.build/
+
+# Distribution artifacts
+APIGhost.dmg
+*.dmg
+dmg_staging/
+
+# Internal tooling & planning — not part of the public repo
+.claude/
+.project/
+
+# Secrets / credentials
+*.p12
+*.cer
+*.mobileprovision
+.env
+.env.*

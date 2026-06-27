@@ -1,0 +1,120 @@
+[
+  {
+    "contentType" : "application\/json",
+    "durationMs" : 42,
+    "host" : "api.example.com",
+    "method" : "GET",
+    "path" : "\/v1\/users",
+    "query" : "page=2&limit=10",
+    "requestBodySize" : 0,
+    "requestHeaders" : {
+      "Accept" : "application\/json",
+      "X-Trace-Id" : "abc"
+    },
+    "responseBody" : "{\"ok\":true}",
+    "responseBodySize" : 11,
+    "responseHeaders" : {
+      "Content-Type" : "application\/json",
+      "X-RateLimit" : "99"
+    },
+    "scheme" : "https",
+    "sessionId" : "session-fixed",
+    "statusCode" : 200,
+    "statusMessage" : "OK",
+    "timestamp" : "2023-11-14T22:13:25Z",
+    "url" : "https:\/\/api.example.com\/v1\/users?page=2&limit=10",
+    "uuid" : "00000000-0000-0000-0000-0000000000A1"
+  },
+  {
+    "contentType" : "application\/json",
+    "durationMs" : 88,
+    "host" : "api.example.com",
+    "method" : "POST",
+    "path" : "\/v1\/login",
+    "requestBody" : "{\"user\":\"a\",\"pass\":\"b\"}",
+    "requestBodySize" : 23,
+    "requestHeaders" : {
+      "Content-Type" : "application\/json"
+    },
+    "responseBody" : "{\"token\":\"xyz\"}",
+    "responseBodySize" : 15,
+    "responseHeaders" : {
+      "Content-Type" : "application\/json"
+    },
+    "scheme" : "https",
+    "sessionId" : "session-fixed",
+    "statusCode" : 201,
+    "statusMessage" : "Created",
+    "timestamp" : "2023-11-14T22:13:24Z",
+    "url" : "https:\/\/api.example.com\/v1\/login",
+    "uuid" : "00000000-0000-0000-0000-0000000000A2"
+  },
+  {
+    "host" : "cdn.example.org",
+    "method" : "GET",
+    "path" : "\/missing.png",
+    "requestBodySize" : 0,
+    "responseBodySize" : 0,
+    "scheme" : "http",
+    "timestamp" : "2023-11-14T22:13:23Z",
+    "url" : "http:\/\/cdn.example.org\/missing.png",
+    "uuid" : "00000000-0000-0000-0000-0000000000A3"
+  },
+  {
+    "durationMs" : 7,
+    "host" : "analytics.tracker.io",
+    "method" : "GET",
+    "path" : "\/collect",
+    "query" : "v=1&t=pageview",
+    "requestBodySize" : 0,
+    "requestHeaders" : {
+      "Accept" : "*\/*"
+    },
+    "responseBodySize" : 0,
+    "scheme" : "https",
+    "statusCode" : 200,
+    "statusMessage" : "OK",
+    "timestamp" : "2023-11-14T22:13:22Z",
+    "url" : "https:\/\/analytics.tracker.io\/collect?v=1&t=pageview",
+    "uuid" : "00000000-0000-0000-0000-0000000000A4"
+  },
+  {
+    "contentType" : "text\/plain",
+    "durationMs" : 1200,
+    "host" : "api.example.com",
+    "method" : "POST",
+    "path" : "\/v1\/orders",
+    "port" : 8443,
+    "query" : "",
+    "requestBody" : "{\"item\":42}",
+    "requestBodySize" : 11,
+    "requestHeaders" : {
+      "Content-Type" : "application\/json"
+    },
+    "responseBody" : "boom",
+    "responseBodySize" : 4,
+    "responseHeaders" : {
+      "Content-Type" : "text\/plain"
+    },
+    "scheme" : "https",
+    "statusCode" : 500,
+    "statusMessage" : "Internal Server Error",
+    "timestamp" : "2023-11-14T22:13:21Z",
+    "url" : "https:\/\/api.example.com:8443\/v1\/orders",
+    "uuid" : "00000000-0000-0000-0000-0000000000A5"
+  },
+  {
+    "host" : "api.example.com",
+    "method" : "GET",
+    "path" : "\/v1\/ping",
+    "requestBodySize" : 0,
+    "requestHeaders" : {
+      "Accept" : "application\/json"
+    },
+    "responseBodySize" : 0,
+    "scheme" : "https",
+    "timestamp" : "2023-11-14T22:13:20Z",
+    "url" : "https:\/\/api.example.com\/v1\/ping",
+    "uuid" : "00000000-0000-0000-0000-0000000000A6"
+  }
+]
