@@ -1,7 +1,7 @@
 import Foundation
 import GRDB
 
-struct StreamChunk: Codable, Sendable {
+nonisolated struct StreamChunk: Codable, Sendable {
     // MARK: - Properties
 
     var id: Int64?
@@ -17,6 +17,16 @@ struct StreamChunk: Codable, Sendable {
     var chunkSize: Int
 
     let timestamp: Date
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case captureUUID = "capture_uuid"
+        case sessionId = "session_id"
+        case chunkIndex = "chunk_index"
+        case data
+        case chunkSize = "chunk_size"
+        case timestamp
+    }
 
     // MARK: - Initialization
 
@@ -57,10 +67,12 @@ struct StreamChunk: Codable, Sendable {
 
 // MARK: - GRDB Protocols
 
-extension StreamChunk: FetchableRecord, PersistableRecord {
-    static let databaseTableName = "stream_chunks"
+extension StreamChunk: nonisolated FetchableRecord { }
 
-    enum Columns {
+extension StreamChunk: PersistableRecord {
+    nonisolated static let databaseTableName = "stream_chunks"
+
+    nonisolated enum Columns {
         static let id = Column(CodingKeys.id)
         static let captureUUID = Column(CodingKeys.captureUUID)
         static let sessionId = Column(CodingKeys.sessionId)
@@ -69,21 +81,11 @@ extension StreamChunk: FetchableRecord, PersistableRecord {
         static let chunkSize = Column(CodingKeys.chunkSize)
         static let timestamp = Column(CodingKeys.timestamp)
     }
-
-    enum CodingKeys: String, CodingKey {
-        case id
-        case captureUUID = "capture_uuid"
-        case sessionId = "session_id"
-        case chunkIndex = "chunk_index"
-        case data
-        case chunkSize = "chunk_size"
-        case timestamp
-    }
 }
 
 // MARK: - Identifiable
 
-extension StreamChunk: Identifiable {
+extension StreamChunk: nonisolated Identifiable {
 }
 
 // MARK: - Computed Properties

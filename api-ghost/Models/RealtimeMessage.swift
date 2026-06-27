@@ -11,7 +11,7 @@ enum MessageDataType: String, Codable, Sendable {
     case binary
 }
 
-struct RealtimeMessage: Codable, Sendable {
+nonisolated struct RealtimeMessage: Codable, Sendable {
     // MARK: - Properties
 
     var id: Int64?
@@ -35,6 +35,20 @@ struct RealtimeMessage: Codable, Sendable {
     let timestamp: Date
 
     var sequenceNum: Int
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case connectionId = "connection_id"
+        case sessionId = "session_id"
+        case direction
+        case eventType = "event_type"
+        case dataType = "data_type"
+        case data
+        case dataSize = "data_size"
+        case lastEventId = "last_event_id"
+        case timestamp
+        case sequenceNum = "sequence_num"
+    }
 
     // MARK: - Initialization
 
@@ -112,10 +126,12 @@ struct RealtimeMessage: Codable, Sendable {
 
 // MARK: - GRDB Protocols
 
-extension RealtimeMessage: FetchableRecord, PersistableRecord {
-    static let databaseTableName = "realtime_messages"
+extension RealtimeMessage: nonisolated FetchableRecord { }
 
-    enum Columns {
+extension RealtimeMessage: PersistableRecord {
+    nonisolated static let databaseTableName = "realtime_messages"
+
+    nonisolated enum Columns {
         static let id = Column(CodingKeys.id)
         static let connectionId = Column(CodingKeys.connectionId)
         static let sessionId = Column(CodingKeys.sessionId)
@@ -128,25 +144,11 @@ extension RealtimeMessage: FetchableRecord, PersistableRecord {
         static let timestamp = Column(CodingKeys.timestamp)
         static let sequenceNum = Column(CodingKeys.sequenceNum)
     }
-
-    enum CodingKeys: String, CodingKey {
-        case id
-        case connectionId = "connection_id"
-        case sessionId = "session_id"
-        case direction
-        case eventType = "event_type"
-        case dataType = "data_type"
-        case data
-        case dataSize = "data_size"
-        case lastEventId = "last_event_id"
-        case timestamp
-        case sequenceNum = "sequence_num"
-    }
 }
 
 // MARK: - Identifiable
 
-extension RealtimeMessage: Identifiable {
+extension RealtimeMessage: nonisolated Identifiable {
 }
 
 // MARK: - Computed Properties

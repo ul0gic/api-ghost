@@ -50,7 +50,8 @@ final class ExportManager {
             throw ExportError.databaseNotAvailable
         }
 
-        try db.write { db in
+        // GRDB 7 writes are immediate transactions; a TRUNCATE checkpoint must run outside one.
+        try db.writeWithoutTransaction { db in
             try db.execute(sql: "PRAGMA wal_checkpoint(TRUNCATE)")
         }
         logger.info("WAL checkpoint completed")

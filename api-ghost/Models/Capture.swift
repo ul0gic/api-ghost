@@ -7,7 +7,7 @@ enum TrafficType: String, Codable, Sendable {
     case beacon
 }
 
-struct Capture: Codable, Sendable {
+nonisolated struct Capture: Codable, Sendable {
     // MARK: - Properties
 
     var id: Int64?
@@ -139,10 +139,10 @@ struct Capture: Codable, Sendable {
 
 // MARK: - GRDB Protocols
 
-extension Capture: FetchableRecord, PersistableRecord {
-    static let databaseTableName = "captures"
+extension Capture: PersistableRecord {
+    nonisolated static let databaseTableName = "captures"
 
-    enum Columns {
+    nonisolated enum Columns {
         static let id = Column(CodingKeys.id)
         static let uuid = Column(CodingKeys.uuid)
         static let timestamp = Column(CodingKeys.timestamp)
@@ -202,7 +202,7 @@ extension Capture: FetchableRecord, PersistableRecord {
         case totalBytes = "total_bytes"
     }
 
-    func encode(to container: inout PersistenceContainer) throws {
+    nonisolated func encode(to container: inout PersistenceContainer) throws {
         container["id"] = id
         container["uuid"] = uuid
         container["timestamp"] = timestamp
@@ -231,8 +231,10 @@ extension Capture: FetchableRecord, PersistableRecord {
         container["total_chunks"] = totalChunks
         container["total_bytes"] = totalBytes
     }
+}
 
-    init(row: Row) throws {
+extension Capture: nonisolated FetchableRecord {
+    nonisolated init(row: Row) throws {
         id = row["id"]
         uuid = row["uuid"]
         timestamp = row["timestamp"]
@@ -270,7 +272,7 @@ extension Capture: FetchableRecord, PersistableRecord {
 
 // MARK: - Identifiable
 
-extension Capture: Identifiable {
+extension Capture: nonisolated Identifiable {
 }
 
 // MARK: - Computed Properties

@@ -124,7 +124,8 @@ final class DatabaseManager: Sendable {
             throw DatabaseError.notInitialized
         }
 
-        try db.write { db in
+        // GRDB 7 writes are immediate transactions; a TRUNCATE checkpoint must run outside one.
+        try db.writeWithoutTransaction { db in
             try db.execute(sql: "PRAGMA wal_checkpoint(TRUNCATE)")
         }
 

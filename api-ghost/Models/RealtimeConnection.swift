@@ -14,7 +14,7 @@ enum ConnectionStatus: String, Codable, Sendable {
     case error
 }
 
-struct RealtimeConnection: Codable, Sendable {
+nonisolated struct RealtimeConnection: Codable, Sendable {
     // MARK: - Properties
 
     var id: Int64?
@@ -58,6 +58,30 @@ struct RealtimeConnection: Codable, Sendable {
     var bytesSent: Int
 
     var bytesReceived: Int
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case connectionId = "connection_id"
+        case sessionId = "session_id"
+        case connectionType = "connection_type"
+        case url
+        case host
+        case path
+        case websocketProtocol = "protocol"
+        case extensions
+        case withCredentials = "with_credentials"
+        case openedAt = "opened_at"
+        case closedAt = "closed_at"
+        case durationMs = "duration_ms"
+        case status
+        case closeCode = "close_code"
+        case closeReason = "close_reason"
+        case wasClean = "was_clean"
+        case messagesSent = "messages_sent"
+        case messagesReceived = "messages_received"
+        case bytesSent = "bytes_sent"
+        case bytesReceived = "bytes_received"
+    }
 
     // MARK: - Initialization
 
@@ -132,10 +156,12 @@ struct RealtimeConnection: Codable, Sendable {
 
 // MARK: - GRDB Protocols
 
-extension RealtimeConnection: FetchableRecord, PersistableRecord {
-    static let databaseTableName = "realtime_connections"
+extension RealtimeConnection: nonisolated FetchableRecord { }
 
-    enum Columns {
+extension RealtimeConnection: PersistableRecord {
+    nonisolated static let databaseTableName = "realtime_connections"
+
+    nonisolated enum Columns {
         static let id = Column(CodingKeys.id)
         static let connectionId = Column(CodingKeys.connectionId)
         static let sessionId = Column(CodingKeys.sessionId)
@@ -158,35 +184,11 @@ extension RealtimeConnection: FetchableRecord, PersistableRecord {
         static let bytesSent = Column(CodingKeys.bytesSent)
         static let bytesReceived = Column(CodingKeys.bytesReceived)
     }
-
-    enum CodingKeys: String, CodingKey {
-        case id
-        case connectionId = "connection_id"
-        case sessionId = "session_id"
-        case connectionType = "connection_type"
-        case url
-        case host
-        case path
-        case websocketProtocol = "protocol"
-        case extensions
-        case withCredentials = "with_credentials"
-        case openedAt = "opened_at"
-        case closedAt = "closed_at"
-        case durationMs = "duration_ms"
-        case status
-        case closeCode = "close_code"
-        case closeReason = "close_reason"
-        case wasClean = "was_clean"
-        case messagesSent = "messages_sent"
-        case messagesReceived = "messages_received"
-        case bytesSent = "bytes_sent"
-        case bytesReceived = "bytes_received"
-    }
 }
 
 // MARK: - Identifiable
 
-extension RealtimeConnection: Identifiable {
+extension RealtimeConnection: nonisolated Identifiable {
 }
 
 // MARK: - Computed Properties

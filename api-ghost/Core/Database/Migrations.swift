@@ -8,7 +8,7 @@ struct Migrations {
         registerV3Migration(&migrator)
     }
 
-    private static func registerV1Migration(_ migrator: inout DatabaseMigrator) {
+    nonisolated private static func registerV1Migration(_ migrator: inout DatabaseMigrator) {
         migrator.registerMigration("v1_initial") { db in
             try db.create(table: "captures") { table in
                 table.autoIncrementedPrimaryKey("id")
@@ -51,7 +51,7 @@ struct Migrations {
         }
     }
 
-    private static func registerV2Migration(_ migrator: inout DatabaseMigrator) {
+    nonisolated private static func registerV2Migration(_ migrator: inout DatabaseMigrator) {
         migrator.registerMigration("v2_realtime_traffic") { db in
             try createRealtimeConnectionsTable(db)
             try createRealtimeMessagesTable(db)
@@ -60,7 +60,7 @@ struct Migrations {
         }
     }
 
-    private static func createRealtimeConnectionsTable(_ db: Database) throws {
+    nonisolated private static func createRealtimeConnectionsTable(_ db: Database) throws {
         try db.create(table: "realtime_connections") { table in
                 table.autoIncrementedPrimaryKey("id")
 
@@ -106,7 +106,7 @@ struct Migrations {
         try db.create(index: "idx_realtime_conn_opened", on: "realtime_connections", columns: ["opened_at"])
     }
 
-    private static func createRealtimeMessagesTable(_ db: Database) throws {
+    nonisolated private static func createRealtimeMessagesTable(_ db: Database) throws {
         try db.create(table: "realtime_messages") { table in
                 table.autoIncrementedPrimaryKey("id")
 
@@ -140,7 +140,7 @@ struct Migrations {
         try db.create(index: "idx_realtime_msg_event", on: "realtime_messages", columns: ["event_type"])
     }
 
-    private static func createStreamChunksTable(_ db: Database) throws {
+    nonisolated private static func createStreamChunksTable(_ db: Database) throws {
         try db.create(table: "stream_chunks") { table in
                 table.autoIncrementedPrimaryKey("id")
 
@@ -166,7 +166,7 @@ struct Migrations {
         )
     }
 
-    private static func addRealtimeColumnsToCaptures(_ db: Database) throws {
+    nonisolated private static func addRealtimeColumnsToCaptures(_ db: Database) throws {
         try db.alter(table: "captures") { table in
             table.add(column: "traffic_type", .text).notNull().defaults(to: "http")
             table.add(column: "total_chunks", .integer)
@@ -176,7 +176,7 @@ struct Migrations {
         try db.create(index: "idx_captures_traffic_type", on: "captures", columns: ["traffic_type"])
     }
 
-    private static func registerV3Migration(_ migrator: inout DatabaseMigrator) {
+    nonisolated private static func registerV3Migration(_ migrator: inout DatabaseMigrator) {
         migrator.registerMigration("v3_graphql_tabs") { db in
             // Native ALTER ... DROP COLUMN needs SQLite 3.35+.
             try db.alter(table: "captures") { table in
