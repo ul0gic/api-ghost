@@ -1,0 +1,70 @@
+name: CodeQL
+
+on:
+  pull_request:
+    branches: [v2, main]
+  push:
+    branches: [v2]
+  schedule:
+    - cron: '0 7 * * 1' # weekly
+
+permissions:
+  contents: read
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  XCODE_VERSION: latest-stable
+
+jobs:
+  analyze:
+    name: CodeQL (Swift)
+    # Swift is compiled — CodeQL must observe a real xcodebuild to extract; needs
+    # the Xcode toolchain, so macOS. harden-runner is intentionally NOT added here
+    # (it can't enforce egress on macOS runners).
+    runs-on: macos-26
+    timeout-minutes: 60
+    permissions:
+      security-events: write # upload the SARIF to code scanning
+      contents: read
+      actions: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1.7.0
+        with:
+          xcode-version: ${{ env.XCODE_VERSION }}
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@8272c299f21ca24af15dfe9ac0971ba969e5e0d5 # v3.36.2
+        with:
+          languages: swift
+          build-mode: manual
+
+      - name: Resolve packages
+        run: >-
+          xcodebuild -resolvePackageDependencies
+          -project api-ghost.xcodeproj -scheme api-ghost
+          -clonedSourcePackagesDirPath .spm
+
+      # CodeQL traces this build. Plain command — no global
+      # SWIFT_TREAT_WARNINGS_AS_ERRORS (breaks GRDB, BUG-001; per-target already).
+      - name: Build (Debug, traced)
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project api-ghost.xcodeproj -scheme api-ghost \
+            -destination 'platform=macOS' -configuration Debug \
+            -clonedSourcePackagesDirPath .spm \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@8272c299f21ca24af15dfe9ac0971ba969e5e0d5 # v3.36.2
+        with:
+          category: "/language:swift"

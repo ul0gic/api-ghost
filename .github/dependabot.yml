@@ -1,0 +1,15 @@
+version: 2
+updates:
+  # Keep the SHA-pinned actions current: Dependabot bumps the pinned commit SHA
+  # and its trailing version comment when actions publish (security) releases.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "ci"
+    groups:
+      # Batch routine action bumps into one PR; security updates still open singly.
+      github-actions:
+        patterns: ["*"]
