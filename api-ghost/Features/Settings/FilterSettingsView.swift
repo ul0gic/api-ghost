@@ -19,6 +19,8 @@ struct FilterSettingsView: View {
 
     @State private var showResetConfirmation: Bool = false
 
+    @State private var categoryStore = FilterCategoryStore()
+
     private let noiseFilter = NoiseFilter.shared
 
     var body: some View {
@@ -29,7 +31,9 @@ struct FilterSettingsView: View {
                     noiseFilter: noiseFilter
                 )
 
-                GroupBox(label: SettingsSectionHeader(title: "Domain Blocklist", icon: "globe")) {
+                FilterCategoriesSection(store: categoryStore)
+
+                GroupBox(label: SettingsSectionHeader(title: "Custom Domain Blocklist", icon: "globe")) {
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Requests to these domains will not be captured.")
                             .font(.system(size: 11))
@@ -69,7 +73,7 @@ struct FilterSettingsView: View {
                 }
                 .backgroundStyle(Color.ghostSurface)
 
-                GroupBox(label: SettingsSectionHeader(title: "Path Patterns", icon: "arrow.triangle.branch")) {
+                GroupBox(label: SettingsSectionHeader(title: "Custom Path Patterns", icon: "arrow.triangle.branch")) {
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Requests with paths containing these patterns will not be captured.")
                             .font(.system(size: 11))
@@ -219,6 +223,7 @@ struct FilterSettingsView: View {
     private func resetToDefaults() {
         noiseFilter.resetToDefaults()
         noiseFilter.isEnabled = true
+        categoryStore.resetToDefaults()
         captureAllTraffic = false
         blockedDomains = []
         blockedPaths = []

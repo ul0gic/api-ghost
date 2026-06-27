@@ -7,6 +7,9 @@ private let logger = Logger(subsystem: "corelift.api-ghost", category: "JSMessag
 final class JSMessageHandler: NSObject, WKScriptMessageHandler {
     static let handlerName = "apiGhost"
 
+    /// Set per-tab by the Browser so captures are attributed to their source tab; nil in single-view mode.
+    var sourceTabId: String?
+
     var pendingRequests: [String: PendingRequest] = [:]
 
     var activeConnections: [String: ConnectionState] = [:]
@@ -162,15 +165,15 @@ final class JSMessageHandler: NSObject, WKScriptMessageHandler {
         guard TrafficCapture.shared.isCapturing else { return }
 
         if !filterResult.shouldCapture {
-            DispatchQueue.main.async {
-                AppState.shared.filteredRequestsCount += 1
-            }
+            TrafficCapture.shared.recordFiltered()
             logger.debug("Filtered: \(host)\(path)")
             return
         }
 
         let trafficType = request.isBeacon ? "beacon"
             : responseData.isStreaming ? "streaming" : "http"
+
+        let graphql = graphQLInfo(request: request, urlComponents: urlComponents)
 
         let parameters = CaptureParameters(
             scheme: scheme,
@@ -186,12 +189,26 @@ final class JSMessageHandler: NSObject, WKScriptMessageHandler {
             responseHeaders: responseData.headers,
             responseBody: responseData.body?.data(using: .utf8),
             contentType: contentType,
-            durationMs: responseData.duration
+            durationMs: responseData.duration,
+            graphqlOperationName: graphql?.operationName,
+            graphqlOperationType: graphql?.storedOperationType,
+            sourceTabId: sourceTabId
         )
         let capture = TrafficCapture.shared.createCapture(from: parameters)
 
         TrafficCapture.shared.store(capture)
         logger.info("Captured: \(request.method) \(host)\(path) -> \(responseData.status ?? 0) [\(trafficType)]")
+    }
+
+    private func graphQLInfo(request: PendingRequest, urlComponents: URLComponents) -> GraphQLOperationInfo? {
+        guard let url = urlComponents.url ?? URL(string: request.url) else { return nil }
+        let contentType = request.headers.first { $0.key.lowercased() == "content-type" }?.value
+        return GraphQLParser.parse(
+            method: request.method,
+            url: url,
+            contentType: contentType,
+            body: request.body?.data(using: .utf8)
+        )
     }
 
     // MARK: - Error Handling

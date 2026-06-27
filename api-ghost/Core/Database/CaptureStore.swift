@@ -120,7 +120,7 @@ final class CaptureStore: Sendable {
     }
 
     func filteredCount() throws -> Int {
-        // Filtered traffic is never persisted and the was_filtered column was removed in v3, so this is always 0.
+        // Dead since filtered traffic is dropped, not stored; retained only because frozen Export/Wipe still call it (DBT-003).
         0
     }
 

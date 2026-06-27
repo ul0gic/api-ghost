@@ -16,6 +16,11 @@ struct SQLCaptureDetailView: View {
             Divider()
                 .background(Color.ghostBorder)
 
+            GraphQLMetaRow(
+                operationName: capture.graphqlOperationName,
+                operationType: capture.graphqlOperationType
+            )
+
             CaptureDetailTabBar(selectedTab: $selectedTab)
 
             Divider()

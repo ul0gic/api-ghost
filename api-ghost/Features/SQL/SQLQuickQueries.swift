@@ -33,7 +33,7 @@ enum QuickQueryType: String, CaseIterable, Identifiable {
         case .jsonResponses: return "JSON responses only"
         case .failedRequests: return "4xx and 5xx errors"
         case .slowRequests: return "Requests > 1 second"
-        case .graphQL: return "GraphQL endpoints"
+        case .graphQL: return "GraphQL operations"
         case .authEndpoints: return "Auth/login endpoints"
         case .byDomain: return "Group by domain"
         case .largeBodies: return "Large response bodies"
@@ -79,10 +79,10 @@ enum QuickQueryType: String, CaseIterable, Identifiable {
                 """
         case .graphQL:
             return """
-                SELECT id, method, host, path, status_code, content_type,
-                       response_body_size, duration_ms, timestamp
+                SELECT id, timestamp, host, path, method, status_code,
+                       graphql_operation_name, graphql_operation_type
                 FROM captures
-                WHERE path LIKE '%graphql%' OR path LIKE '%gql%'
+                WHERE graphql_operation_name IS NOT NULL
                 ORDER BY timestamp DESC
                 LIMIT 100
                 """

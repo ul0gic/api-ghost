@@ -26,6 +26,11 @@ struct TrafficDetailView: View {
                 Divider()
                     .background(Color.ghostBorder)
 
+                GraphQLMetaRow(
+                    operationName: capture.graphqlOperationName,
+                    operationType: capture.graphqlOperationType
+                )
+
                 Group {
                     switch selectedTab {
                     case .request:

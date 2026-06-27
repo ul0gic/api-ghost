@@ -25,6 +25,7 @@ final class TrafficCapture {
 
     private let captureStore = CaptureStore.shared
     private let noiseFilter = NoiseFilter.shared
+    private let filteredCounter = FilterSessionCounter()
 
     // MARK: - Initialization
 
@@ -80,7 +81,8 @@ extension TrafficCapture {
         port: Int,
         requestData: Data,
         responseData: Data?,
-        startTime: Date
+        startTime: Date,
+        sourceTabId: String? = nil
     ) {
         guard isCapturing else { return }
 
@@ -101,36 +103,34 @@ extension TrafficCapture {
         )
 
         if !filterResult.shouldCapture {
-            DispatchQueue.main.async {
-                AppState.shared.filteredRequestsCount += 1
-            }
+            recordFiltered()
             logger.debug("Filtered: \(host)\(request.path) - \(filterResult.reason ?? "blocked")")
             return
         }
 
-        let durationMs = Int(Date().timeIntervalSince(startTime) * 1000)
+        let graphql = graphQLInfo(request: request, scheme: scheme, host: host, port: port)
 
-        let capture = Capture(
-            sessionId: sessionId,
-            method: request.method,
+        let parameters = CaptureParameters(
             scheme: scheme,
             host: host,
             port: port,
+            method: request.method,
             path: request.path,
             query: request.query,
-            requestHeaders: request.headers.toJSONString(),
+            requestHeaders: request.headers,
             requestBody: request.body,
-            requestBodySize: request.body?.count ?? 0,
             statusCode: response?.statusCode,
             statusMessage: response?.statusMessage,
-            responseHeaders: response?.headers.toJSONString(),
+            responseHeaders: response?.headers,
             responseBody: response?.body,
-            responseBodySize: response?.body?.count ?? 0,
             contentType: contentType,
-            durationMs: durationMs
+            durationMs: Int(Date().timeIntervalSince(startTime) * 1000),
+            graphqlOperationName: graphql?.operationName,
+            graphqlOperationType: graphql?.storedOperationType,
+            sourceTabId: sourceTabId
         )
 
-        storeCapture(capture)
+        storeCapture(createCapture(from: parameters))
     }
 
     func createCapture(from parameters: CaptureParameters) -> Capture {
@@ -151,7 +151,31 @@ extension TrafficCapture {
             responseBody: parameters.responseBody,
             responseBodySize: parameters.responseBody?.count ?? 0,
             contentType: parameters.contentType,
-            durationMs: parameters.durationMs
+            durationMs: parameters.durationMs,
+            graphqlOperationName: parameters.graphqlOperationName,
+            graphqlOperationType: parameters.graphqlOperationType,
+            sourceTabId: parameters.sourceTabId
+        )
+    }
+
+    private func graphQLInfo(
+        request: RequestParser.ParsedRequest,
+        scheme: String,
+        host: String,
+        port: Int
+    ) -> GraphQLOperationInfo? {
+        var components = URLComponents()
+        components.scheme = scheme
+        components.host = host
+        components.port = port
+        components.path = request.path
+        components.percentEncodedQuery = request.query
+        guard let url = components.url else { return nil }
+        return GraphQLParser.parse(
+            method: request.method,
+            url: url,
+            contentType: RequestParser.getContentType(from: request.headers),
+            body: request.body
         )
     }
 }
@@ -239,14 +263,30 @@ extension TrafficCapture {
         }
     }
 
+    /// Filtered traffic is dropped, never stored, so the count is an in-memory session tally — never a DB query.
+    var sessionFilteredCount: Int { filteredCounter.value }
+
+    func recordFiltered() {
+        let counter = filteredCounter
+        counter.increment()
+        Task { @MainActor in
+            AppState.shared.filteredRequestsCount = counter.value
+        }
+    }
+
+    func resetSessionFilteredCount() {
+        let counter = filteredCounter
+        counter.reset()
+        Task { @MainActor in
+            AppState.shared.filteredRequestsCount = counter.value
+        }
+    }
+
     func refreshCounts() async {
         do {
             let totalCount = try captureStore.count()
-            let filteredCount = try captureStore.filteredCount()
-
             await MainActor.run {
-                AppState.shared.capturedRequestsCount = totalCount - filteredCount
-                AppState.shared.filteredRequestsCount = filteredCount
+                AppState.shared.capturedRequestsCount = totalCount
             }
         } catch {
             logger.error("Failed to refresh counts: \(error)")
@@ -256,6 +296,7 @@ extension TrafficCapture {
     func resetAll() async {
         do {
             try captureStore.deleteAll()
+            filteredCounter.reset()
 
             await MainActor.run {
                 self.recentCaptures.removeAll()

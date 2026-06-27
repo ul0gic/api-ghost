@@ -42,18 +42,14 @@ struct StatsView: View {
         Task {
             do {
                 let total = try captureStore.count()
-                let filtered = try captureStore.filteredCount()
                 let domains = try captureStore.uniqueDomainCount()
                 let size = databaseManager.getDatabaseSize()
 
                 await MainActor.run {
-                    capturedCount = total - filtered
-                    filteredCount = filtered
+                    capturedCount = total
+                    filteredCount = AppState.shared.filteredRequestsCount
                     domainCount = domains
                     databaseSize = size
-
-                    AppState.shared.capturedRequestsCount = capturedCount
-                    AppState.shared.filteredRequestsCount = filteredCount
                 }
             } catch {
                 logger.error("Failed to refresh stats: \(error)")

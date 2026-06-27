@@ -123,11 +123,21 @@ struct TrafficListRow: View {
                 .lineLimit(1)
                 .frame(width: 150, alignment: .leading)
 
-            Text(capture.path)
-                .font(.system(size: 12, design: .monospaced))
-                .foregroundColor(.ghostTextSecondary)
-                .lineLimit(1)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            HStack(spacing: 8) {
+                Text(capture.path)
+                    .font(.system(size: 12, design: .monospaced))
+                    .foregroundColor(.ghostTextSecondary)
+                    .lineLimit(1)
+                    .layoutPriority(1)
+
+                GraphQLInlineTag(
+                    operationName: capture.graphqlOperationName,
+                    operationType: capture.graphqlOperationType
+                )
+
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
 
             StatusBadge(statusCode: capture.statusCode)
                 .frame(width: 60, alignment: .center)

@@ -195,7 +195,8 @@ extension SQLViewModel {
         "host": 160, "path": 220, "content_type": 80,
         "timestamp": 100, "duration_ms": 80,
         "response_body_size": 90, "request_body_size": 90,
-        "request_count": 90, "avg_duration_ms": 100, "total_bytes": 90
+        "request_count": 90, "avg_duration_ms": 100, "total_bytes": 90,
+        "graphql_operation_name": 150, "graphql_operation_type": 100
     ]
 
     func defaultColumnWidth(for column: String) -> CGFloat {

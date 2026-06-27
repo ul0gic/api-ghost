@@ -35,6 +35,10 @@ struct SmartCell: View {
                 } else {
                     cellText
                 }
+            } else if column.lowercased() == "graphql_operation_type" {
+                graphQLTypeCell
+            } else if column.lowercased() == "graphql_operation_name" {
+                graphQLNameCell
             } else if column.lowercased() == "timestamp" {
                 timestampCell
             } else {
@@ -42,6 +46,31 @@ struct SmartCell: View {
             }
         }
         .frame(width: width - 4, alignment: isNumeric ? .trailing : .leading)
+    }
+
+    @ViewBuilder private var graphQLTypeCell: some View {
+        if case .string(let type) = value.storage {
+            HStack {
+                GraphQLOperationBadge(operationType: type)
+                Spacer()
+            }
+            .padding(.horizontal, 8)
+        } else {
+            cellText
+        }
+    }
+
+    @ViewBuilder private var graphQLNameCell: some View {
+        if case .string(let name) = value.storage {
+            Text(name)
+                .font(.system(size: 11, design: .monospaced))
+                .foregroundColor(.ghostAccent)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .padding(.horizontal, 8)
+        } else {
+            cellText
+        }
     }
 
     private var cellText: some View {

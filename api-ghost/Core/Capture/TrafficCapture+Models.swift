@@ -12,12 +12,12 @@ extension TrafficCapture {
         do {
             status.databaseConnected = true
             status.captureCount = try CaptureStore.shared.count()
-            status.filteredCount = try CaptureStore.shared.filteredCount()
         } catch {
             status.databaseConnected = false
             status.databaseError = error.localizedDescription
         }
 
+        status.filteredCount = await MainActor.run { AppState.shared.filteredRequestsCount }
         status.isCapturing = isCapturing
         status.sessionId = sessionId
         status.recentCapturesCount = recentCaptures.count
@@ -59,6 +59,9 @@ struct CaptureParameters {
     let responseBody: Data?
     let contentType: String?
     let durationMs: Int?
+    let graphqlOperationName: String?
+    let graphqlOperationType: String?
+    let sourceTabId: String?
 }
 
 // MARK: - Capture System Status

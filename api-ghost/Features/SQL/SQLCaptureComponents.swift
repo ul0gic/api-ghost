@@ -86,6 +86,10 @@ struct CaptureDetailCard<Content: View>: View {
 struct CaptureHeadersView: View {
     let headers: [String: String]
 
+    private static let authHeaders: Set<String> = [
+        "authorization", "cookie", "set-cookie", "x-api-key", "x-csrf-token", "x-auth-token"
+    ]
+
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             ForEach(headers.sorted { $0.key < $1.key }, id: \.key) { key, value in
@@ -96,11 +100,18 @@ struct CaptureHeadersView: View {
 
                     Text(value)
                         .font(.system(size: 11, design: .monospaced))
-                        .foregroundColor(.ghostTextSecondary)
+                        .foregroundColor(valueColor(for: key))
                         .textSelection(.enabled)
                 }
             }
         }
+    }
+
+    private func valueColor(for key: String) -> Color {
+        let normalized = key.lowercased()
+        if Self.authHeaders.contains(normalized) { return .ghostWarning }
+        if normalized == "content-type" { return .ghostSuccess }
+        return .ghostTextSecondary
     }
 }
 
@@ -111,28 +122,7 @@ struct CaptureBodyView: View {
     let contentType: String?
 
     var body: some View {
-        Group {
-            if isJSON {
-                if let text = String(data: data, encoding: .utf8) {
-                    JSONViewer(jsonString: text)
-                } else {
-                    RawCaptureBodyView(data: data)
-                }
-            } else {
-                RawCaptureBodyView(data: data)
-            }
-        }
-    }
-
-    private var isJSON: Bool {
-        guard let contentType = contentType?.lowercased() else {
-            if let text = String(data: data, encoding: .utf8) {
-                let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-                return trimmed.hasPrefix("{") || trimmed.hasPrefix("[")
-            }
-            return false
-        }
-        return contentType.contains("json")
+        DecodedBodyView(data: data, contentType: contentType)
     }
 }
 

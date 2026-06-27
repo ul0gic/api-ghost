@@ -5,256 +5,121 @@ final class NoiseFilter: @unchecked Sendable {
 
     static let shared = NoiseFilter()
 
-    // MARK: - Properties
+    typealias FilterResult = FilterDecision
 
-    private var domainRules: [FilterRule] = []
-    private var pathRules: [FilterRule] = []
-    private var contentTypeRules: [FilterRule] = []
-    private var customRules: [FilterRule] = []
+    // MARK: - Guarded State
 
-    private(set) var categories: [FilterCategory] = []
+    private struct State {
+        var categories: [FilterCategory] = []
+        var categoryOverrides: [String: Bool] = [:]
+        var disabledRuleIDs: Set<String> = []
+        var customRules: [FilterRule] = []
+        var isEnabled = true
+        var maxResponseSize = 10 * 1024 * 1024
+        var engine = FilterEngine.empty
 
-    private let rulesQueue = DispatchQueue(label: "com.corelift.apighost.noisefilter", attributes: .concurrent)
+        mutating func rebuildEngine() {
+            engine = FilterEngine(
+                categories: categories,
+                categoryOverrides: categoryOverrides,
+                disabledRuleIDs: disabledRuleIDs,
+                customRules: customRules,
+                isEnabled: isEnabled,
+                maxResponseSize: maxResponseSize
+            )
+        }
+    }
 
-    var isEnabled: Bool = true
-    var maxResponseSize: Int = 10 * 1024 * 1024
+    private let lock = NSLock()
+    private var state = State()
+    private var changeObserver: (any NSObjectProtocol)?
+
+    // Persistence contract owned by the UI (FilterCategoryStore); Core consumes it read-only, keyed by string.
+    private static let categoryOverridesKey = "filter.categoryOverrides"
+    private static let disabledRuleIDsKey = "filter.disabledRuleIDs"
+    private static let filterRulesDidChangeName = Notification.Name("filterRulesDidChange")
+
+    // MARK: - Initialization
 
     private init() {
-        loadDefaultBlocklist()
-        loadCustomRulesFromPreferences()
-        loadFilteringStateFromPreferences()
-    }
+        state.categories = Self.loadBlocklist()
+        state.customRules = Self.loadCustomRules()
+        state.isEnabled = Preferences.shared.filteringEnabled
+        state.categoryOverrides = Self.loadCategoryOverrides()
+        state.disabledRuleIDs = Self.loadDisabledRuleIDs()
+        state.rebuildEngine()
 
-    private func loadCustomRulesFromPreferences() {
-        let customDomains = Preferences.shared.customBlockedDomains
-        let customPaths = Preferences.shared.customBlockedPaths
-
-        for domain in customDomains {
-            let isWildcard = domain.hasPrefix("*.")
-            addDomainRule(domain, isWildcard: isWildcard)
-        }
-
-        for path in customPaths {
-            addPathRule(path)
+        changeObserver = NotificationCenter.default.addObserver(
+            forName: Self.filterRulesDidChangeName,
+            object: nil,
+            queue: nil
+        ) { [weak self] _ in
+            self?.reloadFilterState()
         }
     }
 
-    private func loadFilteringStateFromPreferences() {
-        isEnabled = Preferences.shared.filteringEnabled
-    }
-
-    // MARK: - Loading
-
-    private func loadDefaultBlocklist() {
-        guard let url = Bundle.main.url(forResource: "DefaultBlocklist", withExtension: "json"),
-              let data = try? Data(contentsOf: url),
-              let blocklist = try? JSONDecoder().decode(BlocklistFile.self, from: data) else {
-            loadHardcodedDefaults()
-            return
-        }
-
-        categories = blocklist.categories.map { $0.toFilterCategory() }
-        activateEnabledCategories()
-    }
-
-    private func activateEnabledCategories() {
-        let activeRules = categories.filter(\.isEnabledByDefault).flatMap(\.rules)
-        domainRules = activeRules.filter { $0.type == .domainExact || $0.type == .domainWildcard }
-        pathRules = activeRules.filter { $0.type == .pathContains || $0.type == .pathPrefix || $0.type == .pathRegex }
-        contentTypeRules = activeRules.filter { $0.type == .contentType }
-    }
-
-    private func loadHardcodedDefaults() {
-        domainRules = FilterRule.defaultDomainBlocklist
-        pathRules = FilterRule.defaultPathPatterns
-        contentTypeRules = FilterRule.defaultContentTypeFilters
-        categories = [
-            FilterCategory(
-                id: FilterCategory.fallbackCategoryID,
-                name: "Default Filters",
-                description: "Built-in fallback used when the bundled blocklist is unavailable.",
-                isEnabledByDefault: true,
-                rules: domainRules + pathRules + contentTypeRules
-            )
-        ]
+    private func withLock<T>(_ body: () -> T) -> T {
+        lock.lock()
+        defer { lock.unlock() }
+        return body()
     }
 }
 
+// MARK: - Public Accessors
+
 extension NoiseFilter {
-    func isDomainBlocked(_ host: String) -> (blocked: Bool, reason: String?) {
-        guard isEnabled else { return (false, nil) }
-
-        for rule in domainRules where rule.isEnabled {
-            if rule.matches(host: host) {
-                return (true, "Domain blocked: \(rule.pattern)")
-            }
-        }
-
-        for rule in customRules where rule.isEnabled && (rule.type == .domainExact || rule.type == .domainWildcard) {
-            if rule.matches(host: host) {
-                return (true, "Custom rule: \(rule.pattern)")
-            }
-        }
-
-        return (false, nil)
+    var isEnabled: Bool {
+        get { withLock { state.isEnabled } }
+        set { withLock { state.isEnabled = newValue; state.rebuildEngine() } }
     }
 
-    func addDomainRule(_ pattern: String, isWildcard: Bool = false) {
-        let rule = FilterRule(
-            type: isWildcard ? .domainWildcard : .domainExact,
-            pattern: pattern,
-            description: "User added",
-            isCustom: true
-        )
-        customRules.append(rule)
+    var maxResponseSize: Int {
+        get { withLock { state.maxResponseSize } }
+        set { withLock { state.maxResponseSize = newValue; state.rebuildEngine() } }
     }
 
-    func removeDomainRule(_ pattern: String) {
-        customRules.removeAll { $0.pattern == pattern && ($0.type == .domainExact || $0.type == .domainWildcard) }
-    }
+    var categories: [FilterCategory] { withLock { state.categories } }
+
+    var allRules: [FilterRule] { withLock { state.engine.allRules } }
+
+    var customRulesList: [FilterRule] { withLock { state.customRules } }
+
+    /// The current active rule set as a pure value — snapshot it to assert capture decisions without the singleton.
+    var currentEngine: FilterEngine { withLock { state.engine } }
 }
 
+// MARK: - Category / Rule Toggling (consumes the UI-owned persistence contract)
+
 extension NoiseFilter {
-    func isPathBlocked(_ path: String) -> (blocked: Bool, reason: String?) {
-        guard isEnabled else { return (false, nil) }
-
-        for rule in pathRules where rule.isEnabled {
-            if rule.matches(path: path) {
-                return (true, "Path blocked: \(rule.pattern)")
-            }
+    func reloadFilterState() {
+        let overrides = Self.loadCategoryOverrides()
+        let disabled = Self.loadDisabledRuleIDs()
+        withLock {
+            state.categoryOverrides = overrides
+            state.disabledRuleIDs = disabled
+            state.rebuildEngine()
         }
-
-        for rule in customRules where rule.isEnabled {
-            switch rule.type {
-            case .pathContains, .pathPrefix, .pathRegex:
-                if rule.matches(path: path) {
-                    return (true, "Custom rule: \(rule.pattern)")
-                }
-            default:
-                continue
-            }
-        }
-
-        return (false, nil)
     }
 
-    func addPathRule(_ pattern: String, type: FilterRuleType = .pathContains) {
-        guard type == .pathContains || type == .pathPrefix || type == .pathRegex else { return }
-        let rule = FilterRule(
-            type: type,
-            pattern: pattern,
-            description: "User added",
-            isCustom: true
-        )
-        customRules.append(rule)
-    }
-
-    func removePathRule(_ pattern: String) {
-        customRules.removeAll {
-            $0.pattern == pattern
-                && ($0.type == .pathContains || $0.type == .pathPrefix || $0.type == .pathRegex)
+    func isCategoryEnabled(_ id: String) -> Bool {
+        withLock {
+            guard let category = state.categories.first(where: { $0.id == id }) else {
+                return state.categoryOverrides[id] ?? false
+            }
+            return state.categoryOverrides[category.id] ?? category.isEnabledByDefault
         }
     }
 }
 
-// MARK: - Content-Type Matching
+// MARK: - Decision (delegates to the pure engine)
 
 extension NoiseFilter {
-    func isContentTypeBlocked(_ contentType: String?) -> (blocked: Bool, reason: String?) {
-        guard isEnabled, let contentType = contentType else { return (false, nil) }
-
-        let normalizedType = contentType.split(separator: ";").first.map(String.init) ?? contentType
-
-        for rule in contentTypeRules where rule.isEnabled {
-            if rule.matches(contentType: normalizedType) {
-                return (true, "Content-Type blocked: \(rule.pattern)")
-            }
-        }
-
-        for rule in customRules where rule.isEnabled && rule.type == .contentType {
-            if rule.matches(contentType: normalizedType) {
-                return (true, "Custom rule: \(rule.pattern)")
-            }
-        }
-
-        return (false, nil)
-    }
-
-    func isResponseTooLarge(_ size: Int) -> (blocked: Bool, reason: String?) {
-        guard isEnabled else { return (false, nil) }
-
-        if size > maxResponseSize {
-            let sizeStr = ByteCountFormatter.string(fromByteCount: Int64(size), countStyle: .file)
-            return (true, "Response too large: \(sizeStr)")
-        }
-
-        return (false, nil)
-    }
-
-    func addContentTypeRule(_ pattern: String) {
-        let rule = FilterRule(
-            type: .contentType,
-            pattern: pattern,
-            description: "User added",
-            isCustom: true
-        )
-        customRules.append(rule)
-    }
-
-    func removeContentTypeRule(_ pattern: String) {
-        customRules.removeAll { $0.pattern == pattern && $0.type == .contentType }
-    }
-}
-
-// MARK: - Main Filter Method
-
-extension NoiseFilter {
-    struct FilterResult {
-        let shouldCapture: Bool
-
-        let reason: String?
-
-        static let capture = FilterResult(shouldCapture: true, reason: nil)
-
-        static func filter(_ reason: String) -> FilterResult {
-            FilterResult(shouldCapture: false, reason: reason)
-        }
-    }
-
     func shouldCapture(
         url: URL,
         contentType: String? = nil,
         responseSize: Int? = nil
     ) -> FilterResult {
-        guard isEnabled else { return .capture }
-
-        if let host = url.host {
-            let domainCheck = isDomainBlocked(host)
-            if domainCheck.blocked {
-                return .filter(domainCheck.reason ?? "Domain blocked")
-            }
-        }
-
-        let pathCheck = isPathBlocked(url.path)
-        if pathCheck.blocked {
-            return .filter(pathCheck.reason ?? "Path blocked")
-        }
-
-        if let contentType = contentType {
-            let contentTypeCheck = isContentTypeBlocked(contentType)
-            if contentTypeCheck.blocked {
-                return .filter(contentTypeCheck.reason ?? "Content-Type blocked")
-            }
-        }
-
-        if let size = responseSize {
-            let sizeCheck = isResponseTooLarge(size)
-            if sizeCheck.blocked {
-                return .filter(sizeCheck.reason ?? "Response too large")
-            }
-        }
-
-        return .capture
+        currentEngine.decision(host: url.host, path: url.path, contentType: contentType, responseSize: responseSize)
     }
 
     func shouldCapture(
@@ -263,33 +128,75 @@ extension NoiseFilter {
         contentType: String? = nil,
         responseSize: Int? = nil
     ) -> FilterResult {
-        guard isEnabled else { return .capture }
+        currentEngine.decision(host: host, path: path, contentType: contentType, responseSize: responseSize)
+    }
 
-        let domainCheck = isDomainBlocked(host)
-        if domainCheck.blocked {
-            return .filter(domainCheck.reason ?? "Domain blocked")
-        }
+    func isDomainBlocked(_ host: String) -> (blocked: Bool, reason: String?) {
+        currentEngine.domainBlocked(host)
+    }
 
-        let pathCheck = isPathBlocked(path)
-        if pathCheck.blocked {
-            return .filter(pathCheck.reason ?? "Path blocked")
-        }
+    func isPathBlocked(_ path: String) -> (blocked: Bool, reason: String?) {
+        currentEngine.pathBlocked(path)
+    }
 
-        if let contentType = contentType {
-            let contentTypeCheck = isContentTypeBlocked(contentType)
-            if contentTypeCheck.blocked {
-                return .filter(contentTypeCheck.reason ?? "Content-Type blocked")
+    func isContentTypeBlocked(_ contentType: String?) -> (blocked: Bool, reason: String?) {
+        guard let contentType else { return (false, nil) }
+        return currentEngine.contentTypeBlocked(contentType)
+    }
+
+    func isResponseTooLarge(_ size: Int) -> (blocked: Bool, reason: String?) {
+        currentEngine.responseTooLarge(size)
+    }
+}
+
+// MARK: - Custom Rules
+
+extension NoiseFilter {
+    func addDomainRule(_ pattern: String, isWildcard: Bool = false) {
+        let rule = FilterRule(
+            type: isWildcard ? .domainWildcard : .domainExact,
+            pattern: pattern,
+            description: "User added",
+            isCustom: true
+        )
+        withLock { state.customRules.append(rule); state.rebuildEngine() }
+    }
+
+    func removeDomainRule(_ pattern: String) {
+        withLock {
+            state.customRules.removeAll {
+                $0.pattern == pattern && ($0.type == .domainExact || $0.type == .domainWildcard)
             }
+            state.rebuildEngine()
         }
+    }
 
-        if let size = responseSize {
-            let sizeCheck = isResponseTooLarge(size)
-            if sizeCheck.blocked {
-                return .filter(sizeCheck.reason ?? "Response too large")
+    func addPathRule(_ pattern: String, type: FilterRuleType = .pathContains) {
+        guard type == .pathContains || type == .pathPrefix || type == .pathRegex else { return }
+        let rule = FilterRule(type: type, pattern: pattern, description: "User added", isCustom: true)
+        withLock { state.customRules.append(rule); state.rebuildEngine() }
+    }
+
+    func removePathRule(_ pattern: String) {
+        withLock {
+            state.customRules.removeAll {
+                $0.pattern == pattern
+                    && ($0.type == .pathContains || $0.type == .pathPrefix || $0.type == .pathRegex)
             }
+            state.rebuildEngine()
         }
+    }
 
-        return .capture
+    func addContentTypeRule(_ pattern: String) {
+        let rule = FilterRule(type: .contentType, pattern: pattern, description: "User added", isCustom: true)
+        withLock { state.customRules.append(rule); state.rebuildEngine() }
+    }
+
+    func removeContentTypeRule(_ pattern: String) {
+        withLock {
+            state.customRules.removeAll { $0.pattern == pattern && $0.type == .contentType }
+            state.rebuildEngine()
+        }
     }
 }
 
@@ -297,15 +204,64 @@ extension NoiseFilter {
 
 extension NoiseFilter {
     func resetToDefaults() {
-        customRules.removeAll()
-        loadDefaultBlocklist()
+        let categories = Self.loadBlocklist()
+        withLock {
+            state.customRules.removeAll()
+            state.categories = categories
+            state.rebuildEngine()
+        }
+    }
+}
+
+// MARK: - Loading
+
+private extension NoiseFilter {
+    static func loadBlocklist() -> [FilterCategory] {
+        guard let url = Bundle.main.url(forResource: "DefaultBlocklist", withExtension: "json"),
+              let data = try? Data(contentsOf: url),
+              let blocklist = try? JSONDecoder().decode(BlocklistFile.self, from: data) else {
+            return hardcodedCategories()
+        }
+        return blocklist.categories.map { $0.toFilterCategory() }
     }
 
-    var allRules: [FilterRule] {
-        domainRules + pathRules + contentTypeRules + customRules
+    static func hardcodedCategories() -> [FilterCategory] {
+        [
+            FilterCategory(
+                id: FilterCategory.fallbackCategoryID,
+                name: "Default Filters",
+                description: "Built-in fallback used when the bundled blocklist is unavailable.",
+                isEnabledByDefault: true,
+                rules: FilterRule.defaultDomainBlocklist
+                    + FilterRule.defaultPathPatterns
+                    + FilterRule.defaultContentTypeFilters
+            )
+        ]
     }
 
-    var customRulesList: [FilterRule] {
-        customRules
+    static func loadCustomRules() -> [FilterRule] {
+        var rules: [FilterRule] = []
+        for domain in Preferences.shared.customBlockedDomains {
+            rules.append(
+                FilterRule(
+                    type: domain.hasPrefix("*.") ? .domainWildcard : .domainExact,
+                    pattern: domain,
+                    description: "User added",
+                    isCustom: true
+                )
+            )
+        }
+        for path in Preferences.shared.customBlockedPaths {
+            rules.append(FilterRule(type: .pathContains, pattern: path, description: "User added", isCustom: true))
+        }
+        return rules
+    }
+
+    static func loadCategoryOverrides() -> [String: Bool] {
+        (UserDefaults.standard.dictionary(forKey: categoryOverridesKey) as? [String: Bool]) ?? [:]
+    }
+
+    static func loadDisabledRuleIDs() -> Set<String> {
+        Set(UserDefaults.standard.stringArray(forKey: disabledRuleIDsKey) ?? [])
     }
 }
