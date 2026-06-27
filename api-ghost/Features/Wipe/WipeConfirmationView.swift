@@ -1,11 +1,3 @@
-//
-//  WipeConfirmationView.swift
-//  api-ghost
-//
-//  Confirmation dialog for wiping all captured traffic data.
-//  Displays stats and offers backup option before destructive action.
-//
-
 import SwiftUI
 import os
 
@@ -17,16 +9,13 @@ struct WipeConfirmationView: View {
     @Environment(\.dismiss)
     private var dismiss
 
-    // Callback when wipe is completed
     var onWipeComplete: (() -> Void)?
 
-    // State
     @State private var exportBackupFirst: Bool = false
     @State private var isWiping: Bool = false
     @State private var showExportSheet: Bool = false
     @State private var wipeError: String?
 
-    // Stats
     @State private var requestCount: Int = 0
     @State private var filteredCount: Int = 0
     @State private var endpointCount: Int = 0
@@ -35,24 +24,18 @@ struct WipeConfirmationView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header with warning icon
             headerSection
 
             Divider()
                 .background(Color.ghostBorder)
 
-            // Content
             VStack(alignment: .leading, spacing: 20) {
-                // Warning message
                 warningMessage
 
-                // Stats display
                 statsDisplay
 
-                // Export backup option
                 exportBackupOption
 
-                // Error display
                 if let error = wipeError {
                     errorDisplay(error)
                 }
@@ -62,7 +45,6 @@ struct WipeConfirmationView: View {
             Divider()
                 .background(Color.ghostBorder)
 
-            // Footer with buttons
             footerButtons
         }
         .frame(width: 420)
@@ -249,8 +231,7 @@ struct WipeConfirmationView: View {
         do {
             requestCount = try CaptureStore.shared.count()
             filteredCount = try CaptureStore.shared.filteredCount()
-            // Use simple counts instead of expensive aggregation functions
-            // uniqueEndpointCount() runs regex on all response bodies - way too slow
+            // uniqueEndpointCount() runs regex over all response bodies — too slow here.
             endpointCount = try CaptureStore.shared.uniquePathCount()
             domainCount = try CaptureStore.shared.uniqueDomainCount()
             databaseSize = DatabaseManager.shared.getDatabaseSize()
@@ -272,25 +253,21 @@ struct WipeConfirmationView: View {
         isWiping = true
         wipeError = nil
 
-        // Pause capture to prevent database contention during wipe
         let wasCapturing = TrafficCapture.shared.isCapturing
         TrafficCapture.shared.pauseCapture()
 
-        // Clear in-memory captures FIRST to stop UI from reading database
+        // Clear in-memory captures first so the UI stops reading the database before the wipe.
         TrafficCapture.shared.clearRecentCaptures()
         AppState.shared.capturedRequestsCount = 0
         AppState.shared.filteredRequestsCount = 0
 
-        // Give UI time to update and release any database reads
+        // Delay lets the UI release its database reads before the wipe runs.
         DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 0.3) {
             do {
-                // Wipe all data
                 try DatabaseManager.shared.wipeAllData()
 
-                // Vacuum to reclaim space
                 try DatabaseManager.shared.vacuum()
 
-                // Complete on main thread
                 DispatchQueue.main.async {
                     isWiping = false
                     onWipeComplete?()
@@ -298,7 +275,6 @@ struct WipeConfirmationView: View {
                 }
             } catch {
                 DispatchQueue.main.async {
-                    // Resume capture if it was running before
                     if wasCapturing {
                         TrafficCapture.shared.resumeCapture()
                     }

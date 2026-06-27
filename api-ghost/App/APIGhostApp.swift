@@ -1,10 +1,3 @@
-//
-//  APIGhostApp.swift
-//  api-ghost
-//
-//  Created by ul0gic on 12/16/25.
-//
-
 import SwiftUI
 import os
 
@@ -16,10 +9,8 @@ struct APIGhostApp: App {
 
     init() {
         logger.info("Initializing...")
-        // Initialize database
         initializeDatabase()
 
-        // Initialize capture session (starts paused by default)
         let shouldPause = !Preferences.shared.autoStartRecording || Preferences.shared.isRecordingPaused
         TrafficCapture.shared.initializeSession(paused: shouldPause)
 
@@ -37,13 +28,11 @@ struct APIGhostApp: App {
         .commands {
             CommandGroup(replacing: .appSettings) {
                 Button("Settings...") {
-                    // Switch to Settings tab via AppState
                     AppState.shared.selectedTab = .settings
                 }
                 .keyboardShortcut(",", modifiers: .command)
             }
 
-            // Custom keyboard shortcuts
             CommandGroup(after: .toolbar) {
                 Button("Reload Page") {
                     NotificationCenter.default.post(name: .reloadPage, object: nil)
@@ -98,7 +87,6 @@ struct APIGhostApp: App {
     // MARK: - Private Methods
 
     private func initializeDatabase() {
-        // Access the shared instance to trigger initialization
         let manager = DatabaseManager.shared
 
         if manager.isReady {
@@ -112,7 +100,6 @@ struct APIGhostApp: App {
 
 // MARK: - Main Content Wrapper
 
-/// Wrapper view that handles navigation notifications
 private struct MainContentWrapper: View {
     @Binding var showOnboarding: Bool
 
@@ -129,11 +116,9 @@ private struct MainContentWrapper: View {
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .openSettings)) { _ in
-            // Navigate to Settings tab via AppState
             AppState.shared.selectedTab = .settings
         }
         .onReceive(NotificationCenter.default.publisher(for: .exportDatabase)) { _ in
-            // Switch to Settings tab, then to Data Management
             AppState.shared.selectedTab = .settings
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 NotificationCenter.default.post(name: .openSettingsToTab, object: SettingsTab.dataManagement)

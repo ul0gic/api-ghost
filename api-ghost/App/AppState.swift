@@ -1,10 +1,3 @@
-//
-//  AppState.swift
-//  api-ghost
-//
-//  Global application state using @Observable macro
-//
-
 import SwiftUI
 
 // MARK: - Navigation Tab Enum
@@ -26,12 +19,10 @@ enum NavigationTab: String, CaseIterable, Identifiable {
         }
     }
 
-    /// Whether this tab shows the domains sidebar
     var showsDomainsSidebar: Bool {
         self == .browser
     }
 
-    /// Whether this tab shows the traffic inspector
     var showsTrafficInspector: Bool {
         self == .browser
     }
@@ -41,15 +32,12 @@ enum NavigationTab: String, CaseIterable, Identifiable {
 final class AppState {
     static let shared = AppState()
 
-    // Recording state
     var isRecording: Bool = false
 
-    // Navigation state
     var selectedTab: NavigationTab = .browser
     var selectedDomain: String?
     var selectedCapture: UUID?
 
-    // Stats
     var capturedRequestsCount: Int = 0
     var filteredRequestsCount: Int = 0
 

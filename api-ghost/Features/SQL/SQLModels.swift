@@ -1,16 +1,8 @@
-//
-//  SQLModels.swift
-//  APIGhost
-//
-//  Models used by the SQL Database Explorer feature.
-//
-
 import Foundation
 @preconcurrency import GRDB
 
 // MARK: - SQL Query Result
 
-/// Represents the result of a SQL query execution
 struct SQLQueryResult: Identifiable {
     let id = UUID()
     let columns: [String]
@@ -20,13 +12,11 @@ struct SQLQueryResult: Identifiable {
     let query: String
     let timestamp: Date
 
-    /// Returns the value at a specific row and column index
     func value(row: Int, column: Int) -> DatabaseValue? {
         guard row < rows.count, column < columns.count else { return nil }
         return rows[row][column]
     }
 
-    /// Formats a database value for display (basic formatting)
     static func formatValue(_ value: DatabaseValue) -> String {
         switch value.storage {
         case .null:
@@ -45,7 +35,6 @@ struct SQLQueryResult: Identifiable {
         }
     }
 
-    /// Formats a database value with smart formatting based on column name
     static func formatValueForColumn(
         _ value: DatabaseValue,
         column: String
@@ -86,7 +75,6 @@ struct SQLQueryResult: Identifiable {
         return string
     }
 
-    /// Formats bytes into human-readable size
     static func formatBytes(_ bytes: Int) -> String {
         if bytes == 0 { return "-" }
         if bytes < 1024 { return "\(bytes) B" }
@@ -96,14 +84,12 @@ struct SQLQueryResult: Identifiable {
         return String(format: "%.1f MB", Double(bytes) / (1024 * 1024))
     }
 
-    /// Formats duration in milliseconds
     static func formatDuration(_ ms: Int) -> String {
         if ms == 0 { return "-" }
         if ms < 1000 { return "\(ms) ms" }
         return String(format: "%.1f s", Double(ms) / 1000)
     }
 
-    /// Shortens content type for display
     static func shortenContentType(_ contentType: String) -> String {
         let lower = contentType.lowercased()
         let contentTypeMap: [(String, String)] = [
@@ -127,7 +113,6 @@ struct SQLQueryResult: Identifiable {
         return contentType.count > 15 ? String(contentType.prefix(12)) + "..." : contentType
     }
 
-    /// Formats timestamp as relative time or time only
     static func formatTimestamp(_ value: DatabaseValue) -> String {
         switch value.storage {
         case .string(let string):
@@ -152,7 +137,6 @@ struct SQLQueryResult: Identifiable {
         }
     }
 
-    /// Formats date as relative time
     static func formatRelativeTime(_ date: Date) -> String {
         let interval = Date().timeIntervalSince(date)
         if interval < 60 { return "just now" }

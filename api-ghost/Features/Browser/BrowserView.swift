@@ -1,10 +1,3 @@
-//
-//  BrowserView.swift
-//  APIGhost
-//
-//  NSViewRepresentable wrapper for WKWebView, enabling SwiftUI integration.
-//
-
 import SwiftUI
 import WebKit
 import os
@@ -17,10 +10,8 @@ struct BrowserView: NSViewRepresentable {
     func makeNSView(context: Context) -> WKWebView {
         let configuration = WKWebViewConfiguration()
 
-        // Use non-persistent data store to avoid caching issues
         configuration.websiteDataStore = WKWebsiteDataStore.nonPersistent()
 
-        // Load and inject the API interceptor script
         if let scriptURL = Bundle.main.url(forResource: "APIGhostInterceptor", withExtension: "js"),
            let scriptSource = try? String(contentsOf: scriptURL, encoding: .utf8) {
             let script = WKUserScript(
@@ -34,8 +25,7 @@ struct BrowserView: NSViewRepresentable {
             logger.error("WARNING: Could not load APIGhostInterceptor.js")
         }
 
-        // Register message handler for receiving captured traffic
-        // Store the handler in coordinator to prevent deallocation
+        // Coordinator retains the handler to prevent deallocation.
         let messageHandler = JSMessageHandler()
         context.coordinator.messageHandler = messageHandler
         configuration.userContentController.add(messageHandler, name: JSMessageHandler.handlerName)
@@ -45,9 +35,7 @@ struct BrowserView: NSViewRepresentable {
         webView.uiDelegate = context.coordinator
         webView.allowsBackForwardNavigationGestures = true
 
-        // Use standard Safari user agent to avoid bot detection
-        // Must look like real Safari - no custom identifiers
-        // Standard Safari user agent for stealth
+        // Standard Safari user agent to avoid bot detection
         webView.customUserAgent = [
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
             "AppleWebKit/605.1.15 (KHTML, like Gecko)",
@@ -57,7 +45,6 @@ struct BrowserView: NSViewRepresentable {
         viewModel.webView = webView
         context.coordinator.observeWebView(webView)
 
-        // Load initial URL
         if let url = viewModel.validatedURL {
             webView.load(URLRequest(url: url))
         }
@@ -66,12 +53,9 @@ struct BrowserView: NSViewRepresentable {
     }
 
     func updateNSView(_ webView: WKWebView, context: Context) {
-        // Handle URL changes if needed
     }
 
     func makeCoordinator() -> Coordinator {
         Coordinator(viewModel: viewModel)
     }
-
-    // Coordinator is defined in BrowserViewCoordinator.swift
 }

@@ -1,11 +1,3 @@
-//
-//  ExportDialogView.swift
-//  api-ghost
-//
-//  Export dialog sheet for exporting captured traffic data.
-//  Supports SQLite, JSON, and HAR export formats.
-//
-
 import SwiftUI
 import UniformTypeIdentifiers
 import os

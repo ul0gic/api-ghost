@@ -1,18 +1,9 @@
-//
-//  ContentAreaView.swift
-//  APIGhost
-//
-//  Main content area that displays content based on the selected navigation tab.
-//  When in Browser view, shows a resizable split between browser and traffic inspector.
-//
-
 import SwiftUI
 
 // MARK: - Content Area View
 
 struct ContentAreaView: View {
     @State private var appState = AppState.shared
-    /// BrowserViewModel persists at this level to maintain browser state across tab switches
     @State private var browserViewModel = BrowserViewModel()
 
     var body: some View {
@@ -35,36 +26,27 @@ struct ContentAreaView: View {
 
 // MARK: - Browser With Traffic View
 
-/// Browser view with resizable traffic inspector below
 struct BrowserWithTrafficView: View {
     @Bindable var viewModel: BrowserViewModel
     @State private var splitRatio = CGFloat(Preferences.shared.browserTrafficSplitRatio)
 
-    /// Minimum height for each section in points
     private let minimumSectionHeight: CGFloat = 150
-    /// Divider height in points
     private let dividerHeight: CGFloat = 8
-    /// Minimum total height required for valid layout
     private let minimumTotalHeight: CGFloat = 400
 
     var body: some View {
         GeometryReader { geometry in
-            // Ensure we have valid, positive dimensions before calculating
             let totalHeight = max(minimumTotalHeight, geometry.size.height)
 
-            // Clamp splitRatio to valid bounds (0.2 to 0.8) to prevent extreme values
             let clampedRatio = min(0.8, max(0.2, splitRatio))
 
-            // Calculate heights with safety bounds
             let availableHeight = totalHeight - dividerHeight
             let browserHeight = max(minimumSectionHeight, availableHeight * clampedRatio)
             let trafficHeight = max(minimumSectionHeight, availableHeight - browserHeight)
 
-            // Calculate minimum ratio safely (avoid division by zero)
             let safeMinimumRatio = totalHeight > 0 ? minimumSectionHeight / totalHeight : 0.2
 
             VStack(spacing: 0) {
-                // Browser section
                 VStack(spacing: 0) {
                     NavigationBar(viewModel: viewModel)
 
@@ -77,14 +59,12 @@ struct BrowserWithTrafficView: View {
                 .frame(height: browserHeight)
                 .frame(minHeight: minimumSectionHeight)
 
-                // Resizable divider
                 ResizableDivider(
                     splitRatio: $splitRatio,
                     totalHeight: totalHeight,
                     minimumRatio: safeMinimumRatio
                 )
 
-                // Traffic inspector section
                 TrafficInspectorView()
                     .frame(height: trafficHeight)
                     .frame(minHeight: minimumSectionHeight)
@@ -92,12 +72,10 @@ struct BrowserWithTrafficView: View {
         }
         .frame(minHeight: minimumTotalHeight)
         .onChange(of: splitRatio) { _, newValue in
-            // Clamp the saved value to prevent extreme ratios
             let clampedValue = min(0.8, max(0.2, newValue))
             Preferences.shared.browserTrafficSplitRatio = Double(clampedValue)
         }
         .onAppear {
-            // Ensure splitRatio is within valid bounds on appear
             let storedRatio = CGFloat(Preferences.shared.browserTrafficSplitRatio)
             if storedRatio < 0.2 || storedRatio > 0.8 {
                 splitRatio = min(0.8, max(0.2, storedRatio))
@@ -115,24 +93,20 @@ struct ResizableDivider: View {
 
     @State private var isDragging: Bool = false
 
-    /// Safe minimum ratio clamped to valid bounds
     private var safeMinimumRatio: CGFloat {
         max(0.1, min(0.4, minimumRatio))
     }
 
-    /// Safe maximum ratio (inverse of minimum)
     private var safeMaximumRatio: CGFloat {
         min(0.9, max(0.6, 1.0 - safeMinimumRatio))
     }
 
     var body: some View {
         ZStack {
-            // Visual divider line
             Rectangle()
                 .fill(Color.ghostBorder)
                 .frame(height: 1)
 
-            // Drag handle indicator
             RoundedRectangle(cornerRadius: 2)
                 .fill(isDragging ? Color.ghostAccent : Color.ghostTextMuted)
                 .frame(width: 40, height: 4)
@@ -147,13 +121,11 @@ struct ResizableDivider: View {
                 .onChanged { value in
                     isDragging = true
 
-                    // Guard against invalid totalHeight
                     guard totalHeight > 0 else { return }
 
                     let dragPosition = value.location.y
                     let newRatio = (splitRatio * totalHeight + dragPosition) / totalHeight
 
-                    // Clamp to valid range using safe bounds
                     splitRatio = max(safeMinimumRatio, min(safeMaximumRatio, newRatio))
                 }
                 .onEnded { _ in
@@ -182,14 +154,12 @@ struct SQLContentView: View {
 
 // MARK: - Embedded Settings View
 
-/// Settings view adapted for embedded display in the content area.
 struct EmbeddedSettingsView: View {
     @State private var selectedTab: SettingsTab = .general
     @State private var appState = AppState.shared
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header bar
             HStack {
                 HStack(spacing: 8) {
                     Image(systemName: "gearshape.fill")
@@ -225,9 +195,7 @@ struct EmbeddedSettingsView: View {
             Divider()
                 .background(Color.ghostBorder)
 
-            // Settings content with sidebar navigation
             HSplitView {
-                // Settings sidebar
                 VStack(alignment: .leading, spacing: 4) {
                     ForEach(SettingsTab.allCases, id: \.self) { tab in
                         SettingsSidebarButton(
@@ -245,7 +213,6 @@ struct EmbeddedSettingsView: View {
                 .frame(minWidth: 160, idealWidth: 180, maxWidth: 200)
                 .background(Color.ghostSurface)
 
-                // Settings content
                 Group {
                     switch selectedTab {
                     case .general:

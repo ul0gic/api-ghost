@@ -1,10 +1,3 @@
-//
-//  SQLCaptureComponents.swift
-//  APIGhost
-//
-//  Reusable UI components for SQL capture detail views.
-//
-
 import SwiftUI
 
 // MARK: - Metadata Row
@@ -133,7 +126,6 @@ struct CaptureBodyView: View {
 
     private var isJSON: Bool {
         guard let contentType = contentType?.lowercased() else {
-            // Try to detect JSON from content
             if let text = String(data: data, encoding: .utf8) {
                 let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
                 return trimmed.hasPrefix("{") || trimmed.hasPrefix("[")

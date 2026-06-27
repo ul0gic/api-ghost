@@ -1,11 +1,3 @@
-//
-//  DomainsSidebarView.swift
-//  APIGhost
-//
-//  Right sidebar displaying captured domains for filtering traffic.
-//  Only visible when in Browser view.
-//
-
 import SwiftUI
 import Combine
 import os
@@ -21,7 +13,6 @@ struct DomainsSidebarView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Header
             HStack {
                 Text("DOMAINS")
                     .font(.system(size: 11, weight: .semibold))
@@ -41,7 +32,6 @@ struct DomainsSidebarView: View {
             Divider()
                 .background(Color.ghostBorder)
 
-            // Domain list
             if domains.isEmpty {
                 VStack(spacing: 8) {
                     Image(systemName: "globe")
@@ -57,7 +47,6 @@ struct DomainsSidebarView: View {
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
-                        // "All" option
                         AllDomainsButton(
                             totalCount: totalRequestCount,
                             isSelected: appState.selectedDomain == nil

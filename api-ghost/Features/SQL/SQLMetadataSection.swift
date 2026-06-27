@@ -1,10 +1,3 @@
-//
-//  SQLMetadataSection.swift
-//  APIGhost
-//
-//  Metadata section for SQL capture detail view.
-//
-
 import SwiftUI
 
 // MARK: - Metadata Section

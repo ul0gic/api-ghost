@@ -1,10 +1,3 @@
-//
-//  DomainListView.swift
-//  APIGhost
-//
-//  Expandable tree view for displaying captured domains and their paths.
-//
-
 import SwiftUI
 import Combine
 import os
@@ -30,7 +23,6 @@ struct DomainListView: View {
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
-                        // "All" option to clear filter
                         if selectedDomain != nil {
                             Button(action: clearSelection) {
                                 HStack(spacing: 6) {
@@ -82,7 +74,6 @@ struct DomainListView: View {
         .onReceive(NotificationCenter.default.publisher(for: .clearTrafficList)) { _ in
             clearSelection()
         }
-        // Refresh periodically when captures change
         .onReceive(Timer.publish(every: 2, on: .main, in: .common).autoconnect()) { _ in
             loadDomains()
         }
@@ -101,7 +92,6 @@ struct DomainListView: View {
                         let host = hostCount.host
                         let count = hostCount.count
 
-                        // Get paths for this domain
                         let domainEndpoints = endpoints[host] ?? []
                         let paths = domainEndpoints.map { endpoint in
                             PathItem(
@@ -173,9 +163,7 @@ struct DomainRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Domain header
             HStack(spacing: 0) {
-                // Expand/collapse button
                 Button(action: onToggle) {
                     Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
                         .font(.system(size: 10))
@@ -184,7 +172,6 @@ struct DomainRow: View {
                 }
                 .buttonStyle(.plain)
 
-                // Domain name (clickable to select/filter)
                 Button(action: onSelect) {
                     HStack(spacing: 6) {
                         Text(domain.name)
@@ -208,7 +195,6 @@ struct DomainRow: View {
             .padding(.leading, 12)
             .background(isSelected ? Color.ghostAccentMuted : Color.clear)
 
-            // Expanded paths
             if isExpanded {
                 ForEach(domain.paths) { pathItem in
                     PathRow(pathItem: pathItem)

@@ -1,10 +1,3 @@
-//
-//  TrafficDetailView.swift
-//  api-ghost
-//
-//  Combined request/response detail view for selected capture
-//
-
 import SwiftUI
 import os
 
@@ -19,13 +12,11 @@ struct TrafficDetailView: View {
     var body: some View {
         if let capture = capture {
             VStack(spacing: 0) {
-                // Tab bar
                 HStack(spacing: 0) {
                     DetailTabButton(tab: .request, selectedTab: $selectedTab)
                     DetailTabButton(tab: .response, selectedTab: $selectedTab)
                     Spacer()
 
-                    // Action buttons
                     TrafficActionButtons(capture: capture)
                 }
                 .padding(.horizontal, 12)
@@ -35,7 +26,6 @@ struct TrafficDetailView: View {
                 Divider()
                     .background(Color.ghostBorder)
 
-                // Content
                 Group {
                     switch selectedTab {
                     case .request:
@@ -190,10 +180,8 @@ struct TrafficActionButtons: View {
             var request = URLRequest(url: url)
             request.httpMethod = capture.method
 
-            // Add headers
             if let headers = capture.requestHeadersDictionary {
                 for (key, value) in headers {
-                    // Skip problematic headers
                     if ["host", "content-length", "accept-encoding"].contains(key.lowercased()) {
                         continue
                     }
@@ -201,7 +189,6 @@ struct TrafficActionButtons: View {
                 }
             }
 
-            // Add body
             if let body = capture.requestBody {
                 request.httpBody = body
             }
@@ -220,15 +207,12 @@ struct TrafficActionButtons: View {
     private func generateCurlCommand(for capture: Capture) -> String {
         var command = "curl"
 
-        // Method
         if capture.method != "GET" {
             command += " -X \(capture.method)"
         }
 
-        // URL
         command += " '\(capture.fullURL)'"
 
-        // Headers
         if let headers = capture.requestHeadersDictionary {
             for (key, value) in headers.sorted(by: { $0.key < $1.key }) {
                 if ["host", "content-length", "accept-encoding"].contains(key.lowercased()) {
@@ -239,7 +223,6 @@ struct TrafficActionButtons: View {
             }
         }
 
-        // Body
         if let body = capture.requestBody, let bodyString = String(data: body, encoding: .utf8) {
             let escapedBody = bodyString.replacingOccurrences(of: "'", with: "'\\''")
             command += " \\\n  --data '\(escapedBody)'"

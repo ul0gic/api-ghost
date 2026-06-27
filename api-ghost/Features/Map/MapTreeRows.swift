@@ -1,10 +1,3 @@
-//
-//  MapTreeRows.swift
-//  APIGhost
-//
-//  Tree row views for the API Map: domain rows, path node rows, and endpoint rows.
-//
-
 import SwiftUI
 
 // MARK: - Map Domain Row
@@ -18,9 +11,7 @@ struct MapDomainRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Domain header
             HStack(spacing: 8) {
-                // Expand/collapse
                 Button(action: { domain.isExpanded.toggle() }, label: {
                     Image(systemName: domain.isExpanded ? "chevron.down" : "chevron.right")
                         .font(.system(size: 10, weight: .medium))
@@ -29,31 +20,26 @@ struct MapDomainRow: View {
                 })
                 .buttonStyle(.plain)
 
-                // Domain icon
                 Image(systemName: "globe")
                     .font(.system(size: 12))
                     .foregroundColor(.ghostAccent)
 
-                // Host name
                 Text(domain.host)
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(.ghostTextPrimary)
 
                 Spacer()
 
-                // Methods used
                 HStack(spacing: 4) {
                     ForEach(Array(domain.methods).sorted(), id: \.self) { method in
                         MapMethodBadge(method: method, size: .tiny)
                     }
                 }
 
-                // Endpoint count
                 Text("\(domain.uniqueEndpoints) endpoints")
                     .font(.system(size: 11))
                     .foregroundColor(.ghostTextMuted)
 
-                // Request count
                 Text("\(domain.totalRequests)")
                     .font(.system(size: 11, weight: .medium, design: .monospaced))
                     .foregroundColor(.ghostTextSecondary)
@@ -72,7 +58,6 @@ struct MapDomainRow: View {
                 domain.isExpanded.toggle()
             }
 
-            // Children
             if domain.isExpanded {
                 ForEach(domain.rootNodes) { node in
                     PathNodeRow(
@@ -101,12 +86,10 @@ struct PathNodeRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Node header (only show if has children or is a parameter)
             if node.hasChildren || node.isParameter {
                 nodeHeader
             }
 
-            // Expanded content
             if node.isExpanded || (!node.hasChildren && node.endpoints.isEmpty) {
                 nodeChildren
             }
@@ -115,14 +98,12 @@ struct PathNodeRow: View {
 
     private var nodeHeader: some View {
         HStack(spacing: 6) {
-            // Indentation
             ForEach(0..<depth, id: \.self) { _ in
                 Rectangle()
                     .fill(Color.clear)
                     .frame(width: indentWidth)
             }
 
-            // Expand/collapse (if has nested content)
             if !node.children.isEmpty || !node.endpoints.isEmpty {
                 Button(action: { node.isExpanded.toggle() }, label: {
                     Image(systemName: node.isExpanded ? "chevron.down" : "chevron.right")
@@ -137,7 +118,6 @@ struct PathNodeRow: View {
                     .frame(width: 14)
             }
 
-            // Segment display
             if node.isParameter {
                 ParameterBadge(type: node.parameterType ?? .unknown)
             } else {
@@ -148,7 +128,6 @@ struct PathNodeRow: View {
 
             Spacer()
 
-            // Total count for this subtree
             if node.totalHitCount > 0 {
                 Text("\(node.totalHitCount)")
                     .font(.system(size: 10, design: .monospaced))
@@ -174,7 +153,6 @@ struct PathNodeRow: View {
 
     private var nodeChildren: some View {
         Group {
-            // Child nodes
             ForEach(node.children) { child in
                 PathNodeRow(
                     node: child,
@@ -184,7 +162,6 @@ struct PathNodeRow: View {
                 )
             }
 
-            // Endpoints at this level
             ForEach(node.endpoints) { endpoint in
                 EndpointRow(
                     endpoint: endpoint,
@@ -212,23 +189,19 @@ struct EndpointRow: View {
 
     var body: some View {
         HStack(spacing: 6) {
-            // Indentation
             ForEach(0..<depth, id: \.self) { _ in
                 Rectangle()
                     .fill(Color.clear)
                     .frame(width: indentWidth)
             }
 
-            // Leaf indicator
             Image(systemName: "arrow.right")
                 .font(.system(size: 8))
                 .foregroundColor(.ghostTextMuted)
                 .frame(width: 14)
 
-            // Method badge
             MapMethodBadge(method: endpoint.method, size: .normal)
 
-            // Path (just the last segment since parent shows context)
             Text(pathSuffix)
                 .font(.system(size: 12, design: .monospaced))
                 .foregroundColor(.ghostTextPrimary)
@@ -236,7 +209,6 @@ struct EndpointRow: View {
 
             Spacer()
 
-            // Status codes
             HStack(spacing: 3) {
                 ForEach(Array(endpoint.statusCodes).sorted().prefix(3), id: \.self) { code in
                     StatusCodeBadge(code: code)
@@ -248,7 +220,6 @@ struct EndpointRow: View {
                 }
             }
 
-            // Hit count
             Text("\(endpoint.hitCount)")
                 .font(.system(size: 10, weight: .medium, design: .monospaced))
                 .foregroundColor(.ghostTextSecondary)
@@ -257,7 +228,6 @@ struct EndpointRow: View {
                 .background(Color.ghostSurfaceRaised)
                 .cornerRadius(4)
 
-            // Request/Response indicators
             HStack(spacing: 4) {
                 if endpoint.hasRequestBody {
                     Image(systemName: "arrow.up.square.fill")

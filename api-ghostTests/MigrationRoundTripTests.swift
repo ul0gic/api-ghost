@@ -1,15 +1,3 @@
-//
-//  MigrationRoundTripTests.swift
-//  api-ghostTests
-//
-//  build-plan 1.2.5 — proves the v3 migration preserves existing capture data when
-//  upgrading a pre-v3 database, and that a legacy was_filtered=true row survives as a
-//  normal capture once the column is dropped.
-//
-//  Uses a private temp database and the REAL migrator (migrated up to v2, seeded, then
-//  migrated the rest of the way), so it is independent of DatabaseManager.shared.
-//
-
 import Foundation
 import GRDB
 import Testing
@@ -52,7 +40,6 @@ import Testing
         let queue = try DatabaseQueue(path: url.path)
         let migrator = makeMigrator()
 
-        // Build the genuine pre-v3 schema, then seed rows that still have the filter columns.
         try migrator.migrate(queue, upTo: "v2_realtime_traffic")
 
         let preColumns = try queue.read { try $0.columns(in: "captures").map(\.name) }
@@ -77,10 +64,8 @@ import Testing
             }
         }
 
-        // Apply the remaining migrations (v3).
         try migrator.migrate(queue)
 
-        // Schema: filter columns gone, new columns present.
         let postColumns = try queue.read { try $0.columns(in: "captures").map(\.name) }
         #expect(!postColumns.contains("was_filtered"))
         #expect(!postColumns.contains("filter_reason"))
@@ -88,7 +73,6 @@ import Testing
         #expect(postColumns.contains("graphql_operation_type"))
         #expect(postColumns.contains("source_tab_id"))
 
-        // Data: every row survives and decodes as a normal Capture via the new model.
         let captures = try queue.read { db in try Capture.order(Column("uuid")).fetchAll(db) }
         #expect(captures.count == Self.seedRows.count)
 
@@ -100,12 +84,10 @@ import Testing
             #expect(capture.path == seed.path)
             #expect(capture.statusCode == seed.statusCode)
             #expect(capture.requestBody == seed.requestBody)
-            // New v3 columns default to nil for migrated rows.
             #expect(capture.graphqlOperationName == nil)
             #expect(capture.sourceTabId == nil)
         }
 
-        // The legacy filtered row is now just a normal capture — no filter concept remains.
         let legacy = try #require(byUUID["RT-0003-legacy-filtered"])
         #expect(legacy.host == "analytics.tracker.io")
     }

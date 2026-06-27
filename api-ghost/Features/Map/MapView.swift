@@ -1,11 +1,3 @@
-//
-//  MapView.swift
-//  APIGhost
-//
-//  Main API Map view displaying captured endpoints in a hierarchical tree.
-//  Shows normalized paths with parameter detection, methods, status codes, and hit counts.
-//
-
 import SwiftUI
 
 // MARK: - Map View

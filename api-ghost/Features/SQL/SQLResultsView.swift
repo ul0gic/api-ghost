@@ -1,10 +1,3 @@
-//
-//  SQLResultsView.swift
-//  APIGhost
-//
-//  Results table view for SQL query results with resizable columns, sorting, pagination, and export.
-//
-
 import SwiftUI
 import GRDB
 

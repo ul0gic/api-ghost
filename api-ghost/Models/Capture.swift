@@ -1,116 +1,79 @@
-//
-//  Capture.swift
-//  api-ghost
-//
-//  Created for APIGhost project
-//
-
 import Foundation
 @preconcurrency import GRDB
 
-/// Traffic type classification for captures.
 enum TrafficType: String, Codable, Sendable {
     case http
     case streaming
     case beacon
 }
 
-/// Represents a captured HTTP request/response pair.
-/// Conforms to GRDB protocols for database persistence.
 struct Capture: Codable, Sendable {
     // MARK: - Properties
 
-    /// Auto-incremented database primary key
     var id: Int64?
 
-    /// Unique identifier for cross-referencing
     let uuid: String
 
-    /// Timestamp when the request was captured
     let timestamp: Date
 
-    /// Session identifier for grouping related captures
     var sessionId: String?
 
     // MARK: - Request Data
 
-    /// HTTP method (GET, POST, PUT, DELETE, etc.)
     let method: String
 
-    /// URL scheme (http, https)
     let scheme: String
 
-    /// Target host/domain
     let host: String
 
-    /// Port number (nil for default ports)
     var port: Int?
 
-    /// Request path
     let path: String
 
-    /// Query string
     var query: String?
 
-    /// Request headers as JSON string
     var requestHeaders: String?
 
-    /// Request body data
     var requestBody: Data?
 
-    /// Size of request body in bytes
     var requestBodySize: Int
 
     // MARK: - Response Data
 
-    /// HTTP status code
     var statusCode: Int?
 
-    /// HTTP status message
     var statusMessage: String?
 
-    /// Response headers as JSON string
     var responseHeaders: String?
 
-    /// Response body data
     var responseBody: Data?
 
-    /// Size of response body in bytes
     var responseBodySize: Int
 
-    /// Content-Type of the response
     var contentType: String?
 
     // MARK: - Timing
 
-    /// Request duration in milliseconds
     var durationMs: Int?
 
     // MARK: - GraphQL Metadata
 
-    /// GraphQL operation name, when the request is a GraphQL document
     var graphqlOperationName: String?
 
-    /// GraphQL operation type (query, mutation, subscription)
     var graphqlOperationType: String?
 
     // MARK: - Tab Attribution
 
-    /// Identifier of the browser tab that produced this capture (populated later)
     var sourceTabId: String?
 
     // MARK: - Streaming Metadata (v2 schema)
 
-    /// Traffic type classification (http, streaming, beacon)
     var trafficType: TrafficType
 
-    /// Whether this was a streaming response
     var isStreaming: Bool
 
-    /// Total number of chunks for streaming responses
     var totalChunks: Int?
 
-    /// Total bytes transferred for streaming responses
     var totalBytes: Int?
 
     // MARK: - Initialization
@@ -177,10 +140,8 @@ struct Capture: Codable, Sendable {
 // MARK: - GRDB Protocols
 
 extension Capture: FetchableRecord, PersistableRecord {
-    /// Database table name
     static let databaseTableName = "captures"
 
-    /// Column to row key mapping
     enum Columns {
         static let id = Column(CodingKeys.id)
         static let uuid = Column(CodingKeys.uuid)
@@ -211,7 +172,6 @@ extension Capture: FetchableRecord, PersistableRecord {
         static let totalBytes = Column(CodingKeys.totalBytes)
     }
 
-    /// Custom column names to match database schema (snake_case)
     enum CodingKeys: String, CodingKey {
         case id
         case uuid
@@ -242,7 +202,6 @@ extension Capture: FetchableRecord, PersistableRecord {
         case totalBytes = "total_bytes"
     }
 
-    /// Custom encoding to handle TrafficType enum
     func encode(to container: inout PersistenceContainer) throws {
         container["id"] = id
         container["uuid"] = uuid
@@ -273,7 +232,6 @@ extension Capture: FetchableRecord, PersistableRecord {
         container["total_bytes"] = totalBytes
     }
 
-    /// Custom decoding to handle TrafficType enum and optional v2 fields
     init(row: Row) throws {
         id = row["id"]
         uuid = row["uuid"]
@@ -299,7 +257,6 @@ extension Capture: FetchableRecord, PersistableRecord {
         graphqlOperationType = row["graphql_operation_type"]
         sourceTabId = row["source_tab_id"]
 
-        // Handle v2 fields with defaults for older databases
         if let typeStr: String = row["traffic_type"] {
             trafficType = TrafficType(rawValue: typeStr) ?? .http
         } else {
@@ -314,14 +271,11 @@ extension Capture: FetchableRecord, PersistableRecord {
 // MARK: - Identifiable
 
 extension Capture: Identifiable {
-    // id property is already defined as Int64? which conforms to Identifiable
-    // For SwiftUI lists, we can use uuid as a stable identifier when id is nil
 }
 
 // MARK: - Computed Properties
 
 extension Capture {
-    /// Returns the full URL string for this capture
     var fullURL: String {
         var url = "\(scheme)://\(host)"
         if let port = port {
@@ -334,19 +288,16 @@ extension Capture {
         return url
     }
 
-    /// Returns the decoded request headers as a dictionary
     var requestHeadersDictionary: [String: String]? {
         guard let data = requestHeaders?.data(using: .utf8) else { return nil }
         return try? JSONDecoder().decode([String: String].self, from: data)
     }
 
-    /// Returns the decoded response headers as a dictionary
     var responseHeadersDictionary: [String: String]? {
         guard let data = responseHeaders?.data(using: .utf8) else { return nil }
         return try? JSONDecoder().decode([String: String].self, from: data)
     }
 
-    /// Returns the status code category (2xx, 3xx, 4xx, 5xx)
     var statusCategory: String? {
         guard let code = statusCode else { return nil }
         switch code {
@@ -359,7 +310,6 @@ extension Capture {
         }
     }
 
-    /// Returns a human-readable traffic type label
     var trafficTypeLabel: String {
         switch trafficType {
         case .http:
@@ -371,7 +321,6 @@ extension Capture {
         }
     }
 
-    /// Returns whether this capture has associated stream chunks
     var hasStreamChunks: Bool {
         isStreaming && (totalChunks ?? 0) > 0
     }

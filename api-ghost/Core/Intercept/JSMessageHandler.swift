@@ -1,38 +1,22 @@
-//
-//  JSMessageHandler.swift
-//  APIGhost
-//
-//  Handles messages from the injected JavaScript interceptor.
-//  Supports HTTP requests/responses, WebSockets, SSE, and streaming.
-//
-
 import Foundation
 import os
 import WebKit
 
 private let logger = Logger(subsystem: "corelift.api-ghost", category: "JSMessageHandler")
 
-/// Handles messages from the injected JavaScript interceptor.
-/// This class receives captured fetch(), XMLHttpRequest, WebSocket, SSE, and streaming traffic from the browser.
 final class JSMessageHandler: NSObject, WKScriptMessageHandler {
-    /// The name used to register this handler with WKWebView
     static let handlerName = "apiGhost"
 
-    /// Pending HTTP requests waiting for responses, keyed by request ID
     var pendingRequests: [String: PendingRequest] = [:]
 
-    /// Active real-time connections (WebSocket/SSE), keyed by connection ID
     var activeConnections: [String: ConnectionState] = [:]
 
-    /// Message sequence counters for connections
     var messageSequence: [String: Int] = [:]
 
-    /// Lock for thread-safe access to state
     private let lock = NSLock()
 
     // MARK: - Types
 
-    /// Represents a captured HTTP request awaiting its response
     struct PendingRequest {
         let url: String
         let method: String
@@ -43,7 +27,6 @@ final class JSMessageHandler: NSObject, WKScriptMessageHandler {
         let uuid: String
     }
 
-    /// Represents an active real-time connection
     struct ConnectionState {
         var connection: RealtimeConnection
         var messagesSent: Int = 0
@@ -52,7 +35,6 @@ final class JSMessageHandler: NSObject, WKScriptMessageHandler {
         var bytesReceived: Int = 0
     }
 
-    /// Thread-safe access to mutable state
     func withLock(_ block: () -> Void) {
         lock.lock()
         block()
@@ -257,21 +239,18 @@ final class JSMessageHandler: NSObject, WKScriptMessageHandler {
 
     // MARK: - Connection Utilities
 
-    /// Returns the count of active real-time connections
     var activeConnectionCount: Int {
         lock.lock()
         defer { lock.unlock() }
         return activeConnections.count
     }
 
-    /// Returns IDs of all active connections
     var activeConnectionIds: [String] {
         lock.lock()
         defer { lock.unlock() }
         return Array(activeConnections.keys)
     }
 
-    /// Cleans up all tracked state (call when resetting)
     func reset() {
         withLock {
             pendingRequests.removeAll()
@@ -283,7 +262,6 @@ final class JSMessageHandler: NSObject, WKScriptMessageHandler {
 
 // MARK: - Response Data
 
-/// Parsed response data from the JavaScript interceptor
 struct ResponseData {
     let status: Int?
     let statusText: String?

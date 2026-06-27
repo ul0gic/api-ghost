@@ -1,10 +1,3 @@
-//
-//  MapBadges.swift
-//  APIGhost
-//
-//  Badge views used in the API Map: method badges, status code badges, parameter badges.
-//
-
 import SwiftUI
 
 // MARK: - Map Method Badge

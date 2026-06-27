@@ -1,10 +1,3 @@
-//
-//  SQLHighlighter.swift
-//  APIGhost
-//
-//  SQL syntax highlighter that tokenizes and colorizes SQL query text.
-//
-
 import SwiftUI
 
 // MARK: - SQL Highlighter

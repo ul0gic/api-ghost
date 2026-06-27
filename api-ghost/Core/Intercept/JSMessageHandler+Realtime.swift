@@ -1,10 +1,3 @@
-//
-//  JSMessageHandler+Realtime.swift
-//  APIGhost
-//
-//  WebSocket, SSE, and real-time message handling extensions.
-//
-
 import Foundation
 import os
 

@@ -5,9 +5,7 @@ public enum ALPNProtocol: String, Sendable {
     case http11 = "http/1.1"
 }
 
-/// Builds the server-side TLS config that terminates the client leg of the MITM, minting a leaf per
-/// ClientHello SNI via `sslContextCallback` (the supported NIO primitive — there is no SNIHandler).
-/// ALPN advertises h2 + http/1.1 so the inbound leg can branch on the negotiated protocol.
+/// Mints a leaf per ClientHello SNI via `sslContextCallback` — NIO exposes no SNIHandler.
 public struct TLSTermination: Sendable {
     public let authority: CertificateAuthority
     public let defaultHost: String

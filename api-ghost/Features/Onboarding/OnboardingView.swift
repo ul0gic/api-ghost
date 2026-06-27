@@ -1,10 +1,3 @@
-//
-//  OnboardingView.swift
-//  api-ghost
-//
-//  Onboarding flow for first-time users
-//
-
 import SwiftUI
 
 // MARK: - Onboarding Step
@@ -26,12 +19,10 @@ struct OnboardingView: View {
             Color.ghostBase.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                // Progress indicator
                 OnboardingProgressIndicator(currentStep: currentStep)
                     .padding(.top, 40)
                     .padding(.bottom, 32)
 
-                // Content
                 Group {
                     switch currentStep {
                     case .welcome:
@@ -84,7 +75,6 @@ struct WelcomeStepView: View {
 
     var body: some View {
         VStack(spacing: 24) {
-            // App icon / logo placeholder
             ZStack {
                 Circle()
                     .fill(Color.ghostAccentMuted)

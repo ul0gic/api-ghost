@@ -34,10 +34,6 @@ final class CountingSink: CaptureEventSink, @unchecked Sendable {
 }
 
 final class StreamingBackpressureTests: XCTestCase {
-    /// THE spike risk: with the consumer stalled, a backpressure failure on either leg would force
-    /// the origin's bytes into unbounded proxy buffers and balloon RSS toward the body size. Correct
-    /// backpressure keeps only window-sized buffers in flight, so RSS stays flat — then a full drain
-    /// proves the windows reopen (no deadlock) and every byte is delivered.
     func testBackpressureBoundsMemoryWhileStalledThenDeliversInFull() throws {
         let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         defer { try? group.syncShutdownGracefully() }
@@ -92,8 +88,6 @@ final class StreamingBackpressureTests: XCTestCase {
         XCTAssertEqual(sink.capturedErrors, 0)
     }
 
-    /// Full-speed transfer: proves memory stays bounded even unthrottled (the consumer discards), and
-    /// records throughput / peak RSS for the spike report.
     func testFullSpeedTransferStaysBoundedAndRecordsThroughput() throws {
         let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         defer { try? group.syncShutdownGracefully() }

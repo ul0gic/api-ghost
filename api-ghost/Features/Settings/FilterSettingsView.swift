@@ -1,10 +1,3 @@
-//
-//  FilterSettingsView.swift
-//  api-ghost
-//
-//  Filter settings tab for managing domain blocklist, path patterns, and content types.
-//
-
 import SwiftUI
 
 // MARK: - Filter Settings View
@@ -15,16 +8,13 @@ struct FilterSettingsView: View {
     @State private var newDomain: String = ""
     @State private var newPath: String = ""
 
-    // Capture all toggle (inverted from filtering enabled)
     @State private var captureAllTraffic: Bool = false
 
-    // Content type toggles
     @State private var blockImages: Bool = true
     @State private var blockFonts: Bool = true
     @State private var blockVideo: Bool = true
     @State private var blockAudio: Bool = true
 
-    // Response size limit
     @State private var selectedSizeLimit: ResponseSizeLimit = .tenMB
 
     @State private var showResetConfirmation: Bool = false
@@ -34,20 +24,17 @@ struct FilterSettingsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                // Capture All Traffic Toggle
                 CaptureAllToggleView(
                     captureAllTraffic: $captureAllTraffic,
                     noiseFilter: noiseFilter
                 )
 
-                // Domain Blocklist
                 GroupBox(label: SettingsSectionHeader(title: "Domain Blocklist", icon: "globe")) {
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Requests to these domains will not be captured.")
                             .font(.system(size: 11))
                             .foregroundColor(.ghostTextMuted)
 
-                        // Add domain input
                         HStack {
                             TextField("Enter domain (e.g., *.google-analytics.com)", text: $newDomain)
                                 .textFieldStyle(.roundedBorder)
@@ -60,7 +47,6 @@ struct FilterSettingsView: View {
                             .disabled(newDomain.isEmpty)
                         }
 
-                        // Domain list
                         if blockedDomains.isEmpty {
                             Text("No custom domains blocked")
                                 .font(.system(size: 11))
@@ -83,14 +69,12 @@ struct FilterSettingsView: View {
                 }
                 .backgroundStyle(Color.ghostSurface)
 
-                // Path Patterns
                 GroupBox(label: SettingsSectionHeader(title: "Path Patterns", icon: "arrow.triangle.branch")) {
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Requests with paths containing these patterns will not be captured.")
                             .font(.system(size: 11))
                             .foregroundColor(.ghostTextMuted)
 
-                        // Add path input
                         HStack {
                             TextField("Enter path pattern (e.g., /analytics)", text: $newPath)
                                 .textFieldStyle(.roundedBorder)
@@ -103,7 +87,6 @@ struct FilterSettingsView: View {
                             .disabled(newPath.isEmpty)
                         }
 
-                        // Path list
                         if blockedPaths.isEmpty {
                             Text("No custom path patterns")
                                 .font(.system(size: 11))
@@ -126,9 +109,7 @@ struct FilterSettingsView: View {
                 }
                 .backgroundStyle(Color.ghostSurface)
 
-                // Content Types & Response Size Limit - Side by Side
                 HStack(alignment: .top, spacing: 16) {
-                    // Content Types
                     GroupBox(label: SettingsSectionHeader(title: "Content Types", icon: "doc.text")) {
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Block non-API content types.")
@@ -151,7 +132,6 @@ struct FilterSettingsView: View {
                     }
                     .backgroundStyle(Color.ghostSurface)
 
-                    // Response Size Limit
                     GroupBox(label: SettingsSectionHeader(title: "Response Size Limit", icon: "arrow.up.arrow.down")) {
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Max response size to capture.")
@@ -174,7 +154,6 @@ struct FilterSettingsView: View {
                     .backgroundStyle(Color.ghostSurface)
                 }
 
-                // Reset Button
                 HStack {
                     Spacer()
                     Button(action: { showResetConfirmation = true }, label: {
@@ -253,7 +232,6 @@ struct FilterSettingsView: View {
     }
 
     private func loadSettings() {
-        // Load capture all state (inverted from filteringEnabled)
         captureAllTraffic = !Preferences.shared.filteringEnabled
 
         blockedDomains = Preferences.shared.customBlockedDomains
@@ -277,9 +255,6 @@ struct FilterSettingsView: View {
         Preferences.shared.maxResponseSize = selectedSizeLimit.bytes
     }
 }
-
-// ResponseSizeLimit, FilterListItem, CaptureAllToggleView, and ContentTypeToggle
-// are in FilterSettingsComponents.swift
 
 // MARK: - Preview
 

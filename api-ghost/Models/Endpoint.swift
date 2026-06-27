@@ -1,41 +1,24 @@
-//
-//  Endpoint.swift
-//  api-ghost
-//
-//  Created for APIGhost project
-//
-
 import Foundation
 
-/// Represents an API endpoint with parameterized path pattern for endpoint mapping.
 struct Endpoint: Identifiable, Codable, Hashable {
     // MARK: - Properties
 
-    /// Unique identifier combining method, host, and path pattern
     let id: String
 
-    /// The domain host
     let host: String
 
-    /// Parameterized path pattern (e.g., /users/{id})
     let pathPattern: String
 
-    /// HTTP method
     let method: String
 
-    /// Number of times this endpoint was called
     var callCount: Int
 
-    /// Most common status code returned
     var typicalStatus: Int?
 
-    /// When this endpoint was last accessed
     var lastSeen: Date
 
-    /// Whether interesting findings were detected
     var hasInterestingFindings: Bool
 
-    /// List of findings for this endpoint
     var findings: [EndpointFinding]
 
     // MARK: - Initialization
@@ -62,20 +45,15 @@ struct Endpoint: Identifiable, Codable, Hashable {
     }
 }
 
-/// Represents an interesting finding detected for an endpoint.
 struct EndpointFinding: Identifiable, Codable, Hashable {
     // MARK: - Properties
 
-    /// Unique identifier
     let id: String
 
-    /// Type of finding
     let type: FindingType
 
-    /// Human-readable description
     let description: String
 
-    /// Severity level
     let severity: FindingSeverity
 
     // MARK: - Initialization
@@ -88,7 +66,6 @@ struct EndpointFinding: Identifiable, Codable, Hashable {
     }
 }
 
-/// Types of interesting findings that can be detected.
 enum FindingType: String, Codable, Hashable {
     case internalEndpoint = "internal_endpoint"
     case debugEndpoint = "debug_endpoint"
@@ -99,7 +76,6 @@ enum FindingType: String, Codable, Hashable {
     case sensitiveData = "sensitive_data"
 }
 
-/// Severity levels for findings.
 enum FindingSeverity: String, Codable, Hashable {
     case info
     case low
@@ -110,15 +86,10 @@ enum FindingSeverity: String, Codable, Hashable {
 // MARK: - Path Parameterization
 
 extension Endpoint {
-    /// Converts a concrete path to a parameterized pattern.
-    /// Example: /users/123/posts/456 becomes /users/{id}/posts/{id}
-    /// - Parameter path: The concrete path to parameterize
-    /// - Returns: The parameterized path pattern
     static func parameterizePath(_ path: String) -> String {
         let components = path.split(separator: "/")
         let parameterized = components.map { component -> String in
             let str = String(component)
-            // Check if it looks like an ID (numeric, UUID, or hex string)
             if str.isLikelyId {
                 return "{id}"
             }
@@ -131,12 +102,9 @@ extension Endpoint {
 // MARK: - String ID Detection
 
 extension String {
-    /// Determines if this string looks like an identifier (numeric, UUID, or hex).
     var isLikelyId: Bool {
-        // Numeric ID
         if Int(self) != nil { return true }
 
-        // UUID pattern
         if self.count == 36 && self.contains("-") {
             let uuidRegex = try? NSRegularExpression(
                 pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
@@ -145,7 +113,6 @@ extension String {
             if uuidRegex?.firstMatch(in: self, range: range) != nil { return true }
         }
 
-        // Hex string (common for MongoDB ObjectIds, etc.)
         if self.count >= 16 && self.count <= 32 {
             let hexRegex = try? NSRegularExpression(pattern: "^[0-9a-fA-F]+$")
             let range = NSRange(self.startIndex..., in: self)

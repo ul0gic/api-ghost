@@ -7,10 +7,6 @@ import XCTest
 @testable import SwiftMITM
 
 final class TLSInterceptionTests: XCTestCase {
-    /// End-to-end real TLS: the server mints a leaf for the client's SNI via sslContextCallback, and
-    /// the client does fullVerification trusting only our CA. A successful handshake against SNI
-    /// "example.com" proves the leaf chains to the root AND carries SAN=example.com; the captured ALPN
-    /// proves h2/http1.1 branching works.
     func testPerSNILeafMintingAndALPNNegotiation() throws {
         let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         defer { try? group.syncShutdownGracefully() }

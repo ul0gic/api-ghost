@@ -1,11 +1,3 @@
-//
-//  TrafficInspectorView.swift
-//  api-ghost
-//
-//  Main traffic inspector view combining list and detail views
-//  Uses horizontal split: traffic list on left, inspector on right
-//
-
 import SwiftUI
 
 // MARK: - Traffic Inspector View
@@ -16,20 +8,17 @@ struct TrafficInspectorView: View {
     @State private var inspectorWidth: CGFloat = Preferences.shared.inspectorPanelWidth
     @State private var isInspectorCollapsed: Bool = Preferences.shared.inspectorPanelCollapsed
 
-    // Filter state
     @State private var selectedDomainFilter: String?
     @State private var selectedMethodFilter: String?
     @State private var selectedStatusFilter: String?
     @State private var searchText: String = ""
 
-    /// Width constraints for inspector panel
     private let minimumInspectorWidth: CGFloat = 350
     private let maximumInspectorWidth: CGFloat = 700
     private let minimumListWidth: CGFloat = 300
 
     var body: some View {
         VStack(spacing: 0) {
-            // Filter bar at top
             TrafficFilterBar(
                 domains: uniqueDomains,
                 selectedDomain: $selectedDomainFilter,
@@ -42,10 +31,8 @@ struct TrafficInspectorView: View {
             Divider()
                 .background(Color.ghostBorder)
 
-            // Horizontal split: List | Inspector
             GeometryReader { geometry in
                 HStack(spacing: 0) {
-                    // Traffic list (left side)
                     TrafficListView(
                         captures: filteredCaptures,
                         selectedCapture: $selectedCapture
@@ -54,7 +41,6 @@ struct TrafficInspectorView: View {
                     .frame(maxWidth: .infinity)
 
                     if !isInspectorCollapsed {
-                        // Vertical resize handle
                         InspectorVerticalResizeHandle(
                             width: $inspectorWidth,
                             minWidth: minimumInspectorWidth,
@@ -63,9 +49,7 @@ struct TrafficInspectorView: View {
                             Preferences.shared.inspectorPanelWidth = newWidth
                         }
 
-                        // Inspector panel (right side)
                         VStack(spacing: 0) {
-                            // Inspector header with collapse button
                             InspectorHeader(
                                 isCollapsed: $isInspectorCollapsed,
                                 selectedCapture: selectedCapture
@@ -74,7 +58,6 @@ struct TrafficInspectorView: View {
                             Divider()
                                 .background(Color.ghostBorder)
 
-                            // Inspector content
                             TrafficDetailView(capture: selectedCapture)
                         }
                         .frame(width: inspectorWidth)
@@ -84,7 +67,6 @@ struct TrafficInspectorView: View {
                 }
             }
 
-            // Bottom bar with toggle (when inspector is collapsed)
             if isInspectorCollapsed {
                 InspectorCollapsedBar(
                     isCollapsed: $isInspectorCollapsed,
@@ -97,7 +79,6 @@ struct TrafficInspectorView: View {
             Preferences.shared.inspectorPanelCollapsed = newValue
         }
         .onAppear {
-            // Ensure width is within valid bounds
             let storedWidth = Preferences.shared.inspectorPanelWidth
             if storedWidth < minimumInspectorWidth || storedWidth > maximumInspectorWidth {
                 inspectorWidth = max(minimumInspectorWidth, min(maximumInspectorWidth, storedWidth))
@@ -114,17 +95,14 @@ struct TrafficInspectorView: View {
     private var filteredCaptures: [Capture] {
         var captures = trafficCapture.recentCaptures
 
-        // Apply domain filter
         if let domain = selectedDomainFilter {
             captures = captures.filter { $0.host == domain }
         }
 
-        // Apply method filter
         if let method = selectedMethodFilter {
             captures = captures.filter { $0.method == method }
         }
 
-        // Apply status filter
         if let status = selectedStatusFilter {
             captures = captures.filter { capture in
                 guard let code = capture.statusCode else { return false }
@@ -138,7 +116,6 @@ struct TrafficInspectorView: View {
             }
         }
 
-        // Apply search filter
         if !searchText.isEmpty {
             captures = captures.filter { capture in
                 capture.path.localizedCaseInsensitiveContains(searchText) ||
@@ -189,7 +166,6 @@ struct InspectorVerticalResizeHandle: View {
                                 if startWidth == 0 {
                                     startWidth = width
                                 }
-                                // Dragging left increases width, right decreases
                                 let newWidth = startWidth - value.translation.width
                                 width = max(minWidth, min(maxWidth, newWidth))
                             }

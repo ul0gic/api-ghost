@@ -1,10 +1,3 @@
-//
-//  SQLResultsTable.swift
-//  APIGhost
-//
-//  Resizable table views for SQL results: table, header, column header, and row views.
-//
-
 import SwiftUI
 import GRDB
 

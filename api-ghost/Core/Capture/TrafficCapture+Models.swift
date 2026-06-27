@@ -1,10 +1,3 @@
-//
-//  TrafficCapture+Models.swift
-//  APIGhost
-//
-//  Verification/debugging extension and supporting models for TrafficCapture.
-//
-
 import Foundation
 import os
 
@@ -13,12 +6,9 @@ private let logger = Logger(subsystem: "corelift.api-ghost", category: "TrafficC
 // MARK: - Verification & Debugging
 
 extension TrafficCapture {
-    /// Verifies the capture pipeline is working.
-    /// - Returns: A status object with detailed system state
     func verifyCaptureSystem() async -> CaptureSystemStatus {
         var status = CaptureSystemStatus()
 
-        // Check database
         do {
             status.databaseConnected = true
             status.captureCount = try CaptureStore.shared.count()
@@ -28,7 +18,6 @@ extension TrafficCapture {
             status.databaseError = error.localizedDescription
         }
 
-        // Check capture state
         status.isCapturing = isCapturing
         status.sessionId = sessionId
         status.recentCapturesCount = recentCaptures.count
@@ -36,7 +25,6 @@ extension TrafficCapture {
         return status
     }
 
-    /// Debug: prints current system status to the console.
     func printSystemStatus() async {
         let status = await verifyCaptureSystem()
 
@@ -56,7 +44,6 @@ extension TrafficCapture {
 
 // MARK: - Capture Parameters
 
-/// Groups all parameters needed to create a capture from parsed components.
 struct CaptureParameters {
     let scheme: String
     let host: String
@@ -76,7 +63,6 @@ struct CaptureParameters {
 
 // MARK: - Capture System Status
 
-/// Status of the capture system for verification and debugging.
 struct CaptureSystemStatus {
     var databaseConnected: Bool = false
     var databaseError: String?

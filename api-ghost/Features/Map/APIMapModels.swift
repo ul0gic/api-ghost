@@ -1,45 +1,26 @@
-//
-//  APIMapModels.swift
-//  APIGhost
-//
-//  Data models for the API Map feature.
-//  Represents normalized endpoints, path trees, and domains.
-//
-
 import Foundation
 import SwiftUI
 import Combine
 
 // MARK: - API Endpoint
 
-/// Represents a normalized API endpoint discovered from captured traffic.
-/// Endpoints are grouped by normalized path pattern and HTTP method.
 struct APIEndpoint: Identifiable, Hashable {
-    /// Unique identifier for SwiftUI
     let id: UUID
 
-    /// Normalized path with parameter placeholders (e.g., "/projects/{uuid}/auth-token")
     let normalizedPath: String
 
-    /// HTTP method (GET, POST, PUT, DELETE, PATCH, etc.)
     let method: String
 
-    /// All observed HTTP status codes for this endpoint
     let statusCodes: Set<Int>
 
-    /// Total number of times this endpoint was hit
     let hitCount: Int
 
-    /// Example actual paths (up to 3 for display)
     let examplePaths: [String]
 
-    /// Whether any request to this endpoint had a body
     let hasRequestBody: Bool
 
-    /// Whether any response from this endpoint had a body
     let hasResponseBody: Bool
 
-    /// All observed content types
     let contentTypes: Set<String>
 
     // MARK: - Initialization
@@ -68,9 +49,7 @@ struct APIEndpoint: Identifiable, Hashable {
 
     // MARK: - Computed Properties
 
-    /// Returns the primary status code (most common 2xx, or first observed)
     var primaryStatusCode: Int? {
-        // Prefer 2xx codes
         let successCodes = statusCodes.filter { $0 >= 200 && $0 < 300 }
         if let first = successCodes.min() {
             return first
@@ -78,7 +57,6 @@ struct APIEndpoint: Identifiable, Hashable {
         return statusCodes.min()
     }
 
-    /// Color for the HTTP method badge
     var methodColor: Color {
         switch method.uppercased() {
         case "GET": return .ghostMethodGet
@@ -105,8 +83,6 @@ struct APIEndpoint: Identifiable, Hashable {
 
 // MARK: - Parameter Type
 
-/// Types of detected dynamic parameters in URL paths.
-/// Used for smart normalization and visual differentiation.
 enum ParameterType: String, CaseIterable {
     case uuid = "uuid"
     case numericId = "id"
@@ -114,23 +90,20 @@ enum ParameterType: String, CaseIterable {
     case token = "token"
     case unknown = "param"
 
-    /// Placeholder string for display (e.g., "{uuid}")
     var placeholder: String {
         "{\(rawValue)}"
     }
 
-    /// Color for visual display of this parameter type
     var color: Color {
         switch self {
-        case .uuid: return Color(hex: "#A855F7")      // Purple
-        case .numericId: return Color(hex: "#3B82F6") // Blue
-        case .hash: return Color(hex: "#F97316")      // Orange
-        case .token: return Color(hex: "#22C55E")     // Green
-        case .unknown: return Color(hex: "#6B7280")   // Gray
+        case .uuid: return Color(hex: "#A855F7")
+        case .numericId: return Color(hex: "#3B82F6")
+        case .hash: return Color(hex: "#F97316")
+        case .token: return Color(hex: "#22C55E")
+        case .unknown: return Color(hex: "#6B7280")
         }
     }
 
-    /// Description for tooltip/help
     var description: String {
         switch self {
         case .uuid: return "UUID (e.g., 550e8400-e29b-41d4-a716-446655440000)"
@@ -144,28 +117,19 @@ enum ParameterType: String, CaseIterable {
 
 // MARK: - Path Node
 
-/// Represents a segment in the hierarchical path tree.
-/// Nodes can contain child segments and/or terminal endpoints.
 final class PathNode: Identifiable, ObservableObject {
-    /// Unique identifier for SwiftUI
     let id: UUID
 
-    /// The path segment text (e.g., "projects" or "{uuid}")
     let segment: String
 
-    /// Whether this segment is a detected parameter placeholder
     let isParameter: Bool
 
-    /// The detected parameter type (if isParameter is true)
     let parameterType: ParameterType?
 
-    /// Child path nodes
     @Published var children: [PathNode]
 
-    /// Endpoints that terminate at this path level
     @Published var endpoints: [APIEndpoint]
 
-    /// Whether this node is expanded in the tree view
     @Published var isExpanded: Bool
 
     // MARK: - Initialization
@@ -190,22 +154,18 @@ final class PathNode: Identifiable, ObservableObject {
 
     // MARK: - Computed Properties
 
-    /// Total number of endpoints in this subtree
     var totalEndpoints: Int {
         endpoints.count + children.reduce(0) { $0 + $1.totalEndpoints }
     }
 
-    /// Total hit count for all endpoints in this subtree
     var totalHitCount: Int {
         endpoints.reduce(0) { $0 + $1.hitCount } + children.reduce(0) { $0 + $1.totalHitCount }
     }
 
-    /// Whether this node has any children (nodes or endpoints)
     var hasChildren: Bool {
         !children.isEmpty || !endpoints.isEmpty
     }
 
-    /// All unique methods used in this subtree
     var allMethods: Set<String> {
         var methods = Set(endpoints.map { $0.method })
         for child in children {
@@ -217,27 +177,19 @@ final class PathNode: Identifiable, ObservableObject {
 
 // MARK: - API Domain
 
-/// Represents a domain (host) with its complete endpoint tree.
 final class APIDomain: Identifiable, ObservableObject {
-    /// Unique identifier for SwiftUI
     let id: UUID
 
-    /// The domain host (e.g., "api.lovable.dev")
     let host: String
 
-    /// Root path nodes for this domain
     @Published var rootNodes: [PathNode]
 
-    /// Total number of captured requests to this domain
     let totalRequests: Int
 
-    /// Number of unique normalized endpoints
     let uniqueEndpoints: Int
 
-    /// All HTTP methods used across this domain
     let methods: Set<String>
 
-    /// Whether this domain is expanded in the tree view
     @Published var isExpanded: Bool
 
     // MARK: - Initialization
@@ -262,7 +214,6 @@ final class APIDomain: Identifiable, ObservableObject {
 
     // MARK: - Computed Properties
 
-    /// All unique status codes observed across this domain
     var allStatusCodes: Set<Int> {
         var codes = Set<Int>()
         func collectCodes(from node: PathNode) {
@@ -282,7 +233,6 @@ final class APIDomain: Identifiable, ObservableObject {
 
 // MARK: - API Map Error
 
-/// Errors that can occur during API map building.
 enum APIMapError: Error, LocalizedError {
     case databaseNotAvailable
     case queryFailed(String)
@@ -302,7 +252,6 @@ enum APIMapError: Error, LocalizedError {
 
 // MARK: - API Map Statistics
 
-/// Summary statistics for the API map.
 struct APIMapStatistics {
     let domainCount: Int
     let endpointCount: Int

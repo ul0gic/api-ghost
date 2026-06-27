@@ -1,10 +1,3 @@
-//
-//  SQLEditorView.swift
-//  APIGhost
-//
-//  SQL query editor with syntax highlighting, quick query buttons, and query builder.
-//
-
 import SwiftUI
 import AppKit
 
@@ -16,13 +9,11 @@ struct SQLEditorView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Quick query bar
             QuickQueryBar(viewModel: viewModel)
 
             Divider()
                 .background(Color.ghostBorder)
 
-            // Query builder panel (collapsible)
             if viewModel.showQueryBuilder {
                 QueryBuilderPanel(viewModel: viewModel)
 
@@ -30,19 +21,15 @@ struct SQLEditorView: View {
                     .background(Color.ghostBorder)
             }
 
-            // Editor area
             VStack(spacing: 0) {
-                // Editor header
                 EditorHeader(viewModel: viewModel)
 
-                // Text editor
                 SQLTextEditor(
                     text: $viewModel.queryText,
                     isFocused: $isEditorFocused
                 )
                 .frame(minHeight: 80, maxHeight: .infinity)
 
-                // Editor footer with execution controls
                 EditorFooter(
                     viewModel: viewModel
                 ) { viewModel.executeQuery() }
@@ -81,7 +68,6 @@ struct QuickQueryBar: View {
 
                 Spacer()
 
-                // Query Builder toggle
                 Button(action: { viewModel.showQueryBuilder.toggle() }, label: {
                     HStack(spacing: 4) {
                         Image(systemName: "slider.horizontal.3")
@@ -139,8 +125,6 @@ struct QuickQueryButton: View {
     }
 }
 
-// QueryBuilderPanel and QueryFilterRow are in SQLQueryBuilder.swift
-
 // MARK: - Editor Header
 
 struct EditorHeader: View {
@@ -158,7 +142,6 @@ struct EditorHeader: View {
 
             Spacer()
 
-            // Row limit indicator
             HStack(spacing: 4) {
                 Image(systemName: "arrow.up.and.down.text.horizontal")
                     .font(.system(size: 10))
@@ -187,7 +170,6 @@ struct EditorFooter: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            // Execute button
             Button(action: onExecute) {
                 HStack(spacing: 6) {
                     if viewModel.isExecuting {
@@ -220,7 +202,6 @@ struct EditorFooter: View {
             .opacity(viewModel.queryText.isEmpty ? 0.5 : 1)
             .keyboardShortcut(.return, modifiers: .command)
 
-            // Format button
             Button(action: { viewModel.formatQuery() }, label: {
                 HStack(spacing: 4) {
                     Image(systemName: "text.alignleft")
@@ -241,7 +222,6 @@ struct EditorFooter: View {
             .buttonStyle(.plain)
             .disabled(viewModel.queryText.isEmpty)
 
-            // Clear button
             Button(action: { viewModel.clearQuery() }, label: {
                 HStack(spacing: 4) {
                     Image(systemName: "xmark")
@@ -264,7 +244,6 @@ struct EditorFooter: View {
 
             Spacer()
 
-            // Error message
             if let error = viewModel.errorMessage {
                 HStack(spacing: 4) {
                     Image(systemName: "exclamationmark.triangle.fill")
@@ -293,7 +272,6 @@ struct SQLTextEditor: View {
 
     var body: some View {
         ZStack(alignment: .topLeading) {
-            // Highlighted text display (behind)
             if let highlighted = highlightedText, !text.isEmpty {
                 Text(highlighted)
                     .font(.system(size: 13, design: .monospaced))
@@ -301,7 +279,6 @@ struct SQLTextEditor: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
 
-            // Text editor (transparent foreground)
             TextEditor(text: $text)
                 .font(.system(size: 13, design: .monospaced))
                 .foregroundColor(.clear)
@@ -315,7 +292,6 @@ struct SQLTextEditor: View {
                     highlightedText = highlightSQL(text)
                 }
 
-            // Placeholder
             if text.isEmpty {
                 Text("Enter SQL query...")
                     .font(.system(size: 13, design: .monospaced))

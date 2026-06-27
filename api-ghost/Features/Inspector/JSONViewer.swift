@@ -1,10 +1,3 @@
-//
-//  JSONViewer.swift
-//  api-ghost
-//
-//  JSON viewer with syntax highlighting
-//
-
 import SwiftUI
 
 // MARK: - JSON Viewer
@@ -21,7 +14,6 @@ struct JSONViewer: View {
                     .textSelection(.enabled)
                     .padding(10)
             } else {
-                // Fallback to plain text
                 Text(jsonString)
                     .font(.system(size: 11, design: .monospaced))
                     .foregroundColor(.ghostTextSecondary)
@@ -35,7 +27,6 @@ struct JSONViewer: View {
     // MARK: - JSON Parsing and Highlighting
 
     private func parseAndHighlight(_ json: String) -> AttributedString? {
-        // Try to parse and pretty print
         guard let data = json.data(using: .utf8) else { return nil }
 
         let prettyJSON: String
@@ -47,7 +38,6 @@ struct JSONViewer: View {
             )
             prettyJSON = String(data: prettyData, encoding: .utf8) ?? json
         } catch {
-            // If parsing fails, use original string
             prettyJSON = json
         }
 
@@ -148,7 +138,6 @@ struct JSONViewer: View {
         while index < json.endIndex {
             let char = json[index]
             if char == "\\" && json.index(after: index) < json.endIndex {
-                // Skip escaped character
                 index = json.index(index, offsetBy: 2)
             } else if char == "\"" {
                 return index

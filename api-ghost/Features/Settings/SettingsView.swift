@@ -1,11 +1,3 @@
-//
-//  SettingsView.swift
-//  api-ghost
-//
-//  Comprehensive settings window with tabs for General, Proxy, Filtering,
-//  Certificate, and Data Management settings.
-//
-
 import SwiftUI
 import UniformTypeIdentifiers
 import os

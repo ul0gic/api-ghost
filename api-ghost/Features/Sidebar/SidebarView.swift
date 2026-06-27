@@ -1,11 +1,3 @@
-//
-//  SidebarView.swift
-//  APIGhost
-//
-//  Left navigation sidebar with navigation items, stats, and actions.
-//  This is the primary navigation interface for the application.
-//
-
 import SwiftUI
 
 struct SidebarView: View {
@@ -13,7 +5,6 @@ struct SidebarView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // NAVIGATION section
             SidebarSection(title: "NAVIGATION") {
                 VStack(alignment: .leading, spacing: 4) {
                     ForEach(NavigationTab.allCases) { tab in
@@ -32,7 +23,6 @@ struct SidebarView: View {
             Divider()
                 .background(Color.ghostBorder)
 
-            // STATS section
             SidebarSection(title: "STATS") {
                 StatsView()
             }
@@ -40,7 +30,6 @@ struct SidebarView: View {
             Divider()
                 .background(Color.ghostBorder)
 
-            // QUICK ACTIONS section
             SidebarSection(title: "QUICK ACTIONS") {
                 CompactActionsView()
             }
@@ -99,7 +88,6 @@ struct NavigationButton: View {
 
 // MARK: - Compact Actions View
 
-/// Compact version of actions for the navigation sidebar
 struct CompactActionsView: View {
     @State private var showWipeConfirmation: Bool = false
     @State private var showExportDialog: Bool = false

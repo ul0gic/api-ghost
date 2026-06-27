@@ -1,38 +1,21 @@
-//
-//  StreamChunk.swift
-//  api-ghost
-//
-//  Created for APIGhost project
-//  Represents a chunk of data from a streaming HTTP response.
-//
-
 import Foundation
 import GRDB
 
-/// Represents a single chunk from a streaming HTTP response.
-/// Used to capture streaming responses like those from AI APIs.
 struct StreamChunk: Codable, Sendable {
     // MARK: - Properties
 
-    /// Auto-incremented database primary key
     var id: Int64?
 
-    /// Reference to parent capture (the HTTP request that initiated the stream)
     let captureUUID: String
 
-    /// Session identifier for quick filtering
     var sessionId: String?
 
-    /// Chunk index (order within the stream, starting from 0)
     let chunkIndex: Int
 
-    /// Chunk data
     var data: Data?
 
-    /// Size of this chunk in bytes
     var chunkSize: Int
 
-    /// Timestamp when chunk was received
     let timestamp: Date
 
     // MARK: - Initialization
@@ -55,7 +38,6 @@ struct StreamChunk: Codable, Sendable {
         self.timestamp = timestamp
     }
 
-    /// Creates a chunk from string data
     static func fromText(
         captureUUID: String,
         sessionId: String?,
@@ -76,10 +58,8 @@ struct StreamChunk: Codable, Sendable {
 // MARK: - GRDB Protocols
 
 extension StreamChunk: FetchableRecord, PersistableRecord {
-    /// Database table name
     static let databaseTableName = "stream_chunks"
 
-    /// Column to row key mapping
     enum Columns {
         static let id = Column(CodingKeys.id)
         static let captureUUID = Column(CodingKeys.captureUUID)
@@ -90,7 +70,6 @@ extension StreamChunk: FetchableRecord, PersistableRecord {
         static let timestamp = Column(CodingKeys.timestamp)
     }
 
-    /// Custom column names to match database schema (snake_case)
     enum CodingKeys: String, CodingKey {
         case id
         case captureUUID = "capture_uuid"
@@ -105,19 +84,16 @@ extension StreamChunk: FetchableRecord, PersistableRecord {
 // MARK: - Identifiable
 
 extension StreamChunk: Identifiable {
-    // id property is already defined
 }
 
 // MARK: - Computed Properties
 
 extension StreamChunk {
-    /// Returns the data as a string
     var dataString: String? {
         guard let data = data else { return nil }
         return String(data: data, encoding: .utf8)
     }
 
-    /// Returns a truncated preview of the data
     var dataPreview: String {
         guard let str = dataString else {
             return "[No data]"

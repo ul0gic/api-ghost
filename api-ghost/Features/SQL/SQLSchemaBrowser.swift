@@ -1,10 +1,3 @@
-//
-//  SQLSchemaBrowser.swift
-//  APIGhost
-//
-//  Left panel schema browser showing table structure, indexes, statistics, and query history.
-//
-
 import SwiftUI
 
 // MARK: - Schema Browser View
@@ -19,16 +12,13 @@ struct SQLSchemaBrowser: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                // Schema section header
                 SchemaSectionHeader(title: "SCHEMA")
 
-                // Captures table
                 SchemaTableSection(
                     viewModel: viewModel,
                     isExpanded: $isColumnsExpanded
                 )
 
-                // Indexes section
                 SchemaIndexesSection(
                     viewModel: viewModel,
                     isExpanded: $isIndexesExpanded
@@ -38,7 +28,6 @@ struct SQLSchemaBrowser: View {
                     .background(Color.ghostBorder)
                     .padding(.vertical, 8)
 
-                // Statistics section
                 SchemaStatisticsSection(
                     viewModel: viewModel,
                     isExpanded: $isStatisticsExpanded
@@ -48,7 +37,6 @@ struct SQLSchemaBrowser: View {
                     .background(Color.ghostBorder)
                     .padding(.vertical, 8)
 
-                // History section
                 SchemaHistorySection(
                     viewModel: viewModel,
                     isExpanded: $isHistoryExpanded
@@ -87,7 +75,6 @@ struct SchemaTableSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Table header
             Button(action: { withAnimation(.easeInOut(duration: 0.15)) { isExpanded.toggle() } }, label: {
                 HStack(spacing: 6) {
                     Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
@@ -122,7 +109,6 @@ struct SchemaTableSection: View {
             }
             .help("Double-click to generate SELECT query")
 
-            // Columns list
             if isExpanded {
                 VStack(alignment: .leading, spacing: 2) {
                     ForEach(viewModel.schemaColumns) { column in
@@ -153,13 +139,11 @@ struct SchemaColumnRow: View {
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 6) {
-                // Column type icon
                 Image(systemName: columnIcon)
                     .font(.system(size: 10))
                     .foregroundColor(columnColor)
                     .frame(width: 14)
 
-                // Column name
                 Text(column.name)
                     .font(.system(size: 11, design: .monospaced))
                     .foregroundColor(.ghostTextSecondary)
@@ -167,7 +151,6 @@ struct SchemaColumnRow: View {
 
                 Spacer()
 
-                // Type badge
                 Text(shortTypeName)
                     .font(.system(size: 9, design: .monospaced))
                     .foregroundColor(.ghostTextMuted)
@@ -242,7 +225,6 @@ struct SchemaIndexesSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Section header
             Button(action: { withAnimation(.easeInOut(duration: 0.15)) { isExpanded.toggle() } }, label: {
                 HStack(spacing: 6) {
                     Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
@@ -274,7 +256,6 @@ struct SchemaIndexesSection: View {
             })
             .buttonStyle(.plain)
 
-            // Indexes list
             if isExpanded {
                 VStack(alignment: .leading, spacing: 2) {
                     ForEach(viewModel.schemaIndexes) { index in
@@ -307,8 +288,6 @@ struct SchemaIndexesSection: View {
         }
     }
 }
-
-// SchemaStatisticsSection, StatRow, SchemaHistorySection, and HistoryRow are in SQLSchemaBrowserSections.swift
 
 // MARK: - Preview
 

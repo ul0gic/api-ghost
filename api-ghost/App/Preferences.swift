@@ -1,10 +1,3 @@
-//
-//  Preferences.swift
-//  api-ghost
-//
-//  UserDefaults wrapper for persistent user preferences
-//
-
 import Foundation
 
 final class Preferences {
@@ -21,7 +14,6 @@ final class Preferences {
         static let inspectorPanelCollapsed = "inspectorPanelCollapsed"
         static let browserTrafficSplitRatio = "browserTrafficSplitRatio"
 
-        // Filter settings
         static let filteringEnabled = "filteringEnabled"
         static let customBlockedDomains = "customBlockedDomains"
         static let customBlockedPaths = "customBlockedPaths"
@@ -31,7 +23,6 @@ final class Preferences {
         static let blockAudio = "blockAudio"
         static let maxResponseSize = "maxResponseSize"
 
-        // Recording settings
         static let autoStartRecording = "autoStartRecording"
         static let isRecordingPaused = "isRecordingPaused"
     }
@@ -81,22 +72,18 @@ final class Preferences {
         set { defaults.set(newValue, forKey: Keys.inspectorPanelCollapsed) }
     }
 
-    /// Browser/Traffic split ratio (0.0 to 1.0, where 0.5 means equal split)
-    /// Higher values mean more space for the browser, lower for traffic
     var browserTrafficSplitRatio: Double {
         get {
             let ratio = defaults.double(forKey: Keys.browserTrafficSplitRatio)
-            return ratio == 0 ? 0.55 : ratio // Default 55% browser, 45% traffic
+            return ratio == 0 ? 0.55 : ratio
         }
         set { defaults.set(newValue, forKey: Keys.browserTrafficSplitRatio) }
     }
 
     // MARK: - Filter Settings
 
-    /// Whether the noise filter is enabled (true = filtering active, false = capture all traffic)
     var filteringEnabled: Bool {
         get {
-            // Default to true (filtering enabled) if not set
             if defaults.object(forKey: Keys.filteringEnabled) == nil {
                 return true
             }
@@ -118,7 +105,7 @@ final class Preferences {
     var blockImages: Bool {
         get {
             if defaults.object(forKey: Keys.blockImages) == nil {
-                return true // Default to true
+                return true
             }
             return defaults.bool(forKey: Keys.blockImages)
         }
@@ -128,7 +115,7 @@ final class Preferences {
     var blockFonts: Bool {
         get {
             if defaults.object(forKey: Keys.blockFonts) == nil {
-                return true // Default to true
+                return true
             }
             return defaults.bool(forKey: Keys.blockFonts)
         }
@@ -138,7 +125,7 @@ final class Preferences {
     var blockVideo: Bool {
         get {
             if defaults.object(forKey: Keys.blockVideo) == nil {
-                return true // Default to true
+                return true
             }
             return defaults.bool(forKey: Keys.blockVideo)
         }
@@ -148,7 +135,7 @@ final class Preferences {
     var blockAudio: Bool {
         get {
             if defaults.object(forKey: Keys.blockAudio) == nil {
-                return true // Default to true
+                return true
             }
             return defaults.bool(forKey: Keys.blockAudio)
         }
@@ -158,7 +145,7 @@ final class Preferences {
     var maxResponseSize: Int {
         get {
             let size = defaults.integer(forKey: Keys.maxResponseSize)
-            return size == 0 ? 10 * 1024 * 1024 : size // Default 10MB
+            return size == 0 ? 10 * 1024 * 1024 : size
         }
         set { defaults.set(newValue, forKey: Keys.maxResponseSize) }
     }
@@ -168,7 +155,7 @@ final class Preferences {
     var autoStartRecording: Bool {
         get {
             if defaults.object(forKey: Keys.autoStartRecording) == nil {
-                return false // Default to false - app starts paused
+                return false
             }
             return defaults.bool(forKey: Keys.autoStartRecording)
         }

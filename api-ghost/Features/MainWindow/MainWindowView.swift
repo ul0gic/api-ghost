@@ -1,13 +1,3 @@
-//
-//  MainWindowView.swift
-//  APIGhost
-//
-//  Main window layout using a dual-sidebar design:
-//  - Left sidebar (180-200pt): Navigation, Stats, Actions
-//  - Center: Main content area (Browser with traffic, Map, SQL, Settings)
-//  - Right sidebar (150-180pt): Domains list (only visible in Browser view)
-//
-
 import SwiftUI
 
 struct MainWindowView: View {
@@ -16,17 +6,14 @@ struct MainWindowView: View {
 
     var body: some View {
         HSplitView {
-            // Left Sidebar: Navigation (locked to minimum width, non-resizable)
             SidebarView()
                 .frame(width: 200)
                 .background(Color.ghostSurface)
 
-            // Center: Main Content Area
             ContentAreaView()
                 .frame(minWidth: 500)
                 .background(Color.ghostBase)
 
-            // Right Sidebar: Domains (only in Browser view)
             if appState.selectedTab.showsDomainsSidebar {
                 DomainsSidebarView()
                     .frame(width: 200)

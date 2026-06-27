@@ -1,10 +1,3 @@
-//
-//  SQLViewModel+Extensions.swift
-//  APIGhost
-//
-//  Extensions for SQLViewModel: query builder, column management, export, and helpers.
-//
-
 import SwiftUI
 import os
 @preconcurrency import GRDB

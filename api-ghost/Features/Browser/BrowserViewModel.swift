@@ -1,10 +1,3 @@
-//
-//  BrowserViewModel.swift
-//  APIGhost
-//
-//  ViewModel for the embedded browser, managing navigation state and URL handling.
-//
-
 import SwiftUI
 import WebKit
 
@@ -18,11 +11,9 @@ class BrowserViewModel {
 
     weak var webView: WKWebView?
 
-    // URL validation and normalization
     var validatedURL: URL? {
         var urlStr = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        // Add https:// if no scheme present
         if !urlStr.contains("://") {
             urlStr = "https://" + urlStr
         }
@@ -31,8 +22,6 @@ class BrowserViewModel {
     }
 
     init() {
-        // Proxy startup is now handled at the app level in APIGhostApp.swift
-        // to prevent multiple start attempts when SwiftUI recreates views
     }
 
     func loadURL() {

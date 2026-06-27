@@ -1,10 +1,3 @@
-//
-//  TrafficFilterBar.swift
-//  api-ghost
-//
-//  Filter bar for traffic list with domain, method, status, and search filters
-//
-
 import SwiftUI
 
 // MARK: - Traffic Filter Bar
@@ -24,28 +17,24 @@ struct TrafficFilterBar: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            // Domain filter
             FilterDropdown(
                 title: "Domain",
                 selection: $selectedDomain,
                 options: domains.map { ($0, $0) }
             )
 
-            // Method filter
             FilterDropdown(
                 title: "Method",
                 selection: $selectedMethod,
                 options: methods.map { ($0, $0) }
             )
 
-            // Status filter
             FilterDropdown(
                 title: "Status",
                 selection: $selectedStatus,
                 options: statusCategories.map { ($0, $0) }
             )
 
-            // Search field
             HStack(spacing: 6) {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 12))
@@ -78,7 +67,6 @@ struct TrafficFilterBar: View {
 
             Spacer()
 
-            // Clear filters button
             if hasActiveFilters {
                 Button(action: onClearFilters) {
                     HStack(spacing: 4) {

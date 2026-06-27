@@ -3,10 +3,6 @@ import NIOHPACK
 import NIOHTTP2
 import NIOPosix
 
-/// In-process plaintext-h2 origin. On any request it streams `bodySize` bytes, writing only while
-/// the stream channel is writable and resuming on writability — i.e. a well-behaved producer that
-/// respects its own flow-control window. With this origin, any RSS growth under a stalled consumer
-/// is attributable to the proxy leg, not the origin.
 final class TestOriginServer {
     private let group: EventLoopGroup
     private let bodySize: Int

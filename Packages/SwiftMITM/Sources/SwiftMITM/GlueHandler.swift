@@ -1,13 +1,5 @@
 import NIOCore
 
-/// Bidirectional backpressure bridge between two channels (a "matched pair"), reimplemented from
-/// Apple's swift-nio-examples connect-proxy. The load-bearing invariant: `read(context:)` is only
-/// forwarded to the transport while the *partner* channel is writable — so a slow partner stalls
-/// reads on this side instead of buffering unboundedly. At the h2-stream-child level this is what
-/// couples one proxy leg's flow-control window to the other's.
-///
-/// Both partners MUST live on the same EventLoop — the handler calls into the partner's context
-/// directly with no loop hop.
 final class GlueHandler {
     private var partner: GlueHandler?
     private var context: ChannelHandlerContext?
@@ -42,10 +34,7 @@ extension GlueHandler {
     }
 
     private func partnerFlushOnly() {
-        // Clean close path. For HTTP/2 the terminal END_STREAM is carried in-band by the forwarded
-        // frames, so the partner stream closes itself once its writes drain. Forcing any close here —
-        // even output-only — truncates the last in-flight frame (observed as a spurious CANCEL one
-        // byte before the end). Abnormal termination is handled by errorCaught instead.
+        // Forcing a close here — even output-only — truncates the last in-flight HTTP/2 frame; let writes drain.
         context?.flush()
     }
 
@@ -70,8 +59,7 @@ extension GlueHandler: ChannelDuplexHandler {
     func handlerAdded(context: ChannelHandlerContext) {
         self.context = context
         if context.channel.isActive {
-            // Glued onto an already-active channel (the inbound stream): no channelActive will
-            // fire, so service a partner read that was parked before this side was wired.
+            // Already-active channel: no channelActive will fire, so service a read the partner parked before wiring.
             partner?.partnerBecameWritable()
         }
     }
@@ -82,9 +70,7 @@ extension GlueHandler: ChannelDuplexHandler {
     }
 
     func channelActive(context: ChannelHandlerContext) {
-        // Becoming active means this side can now accept writes; release any read the partner parked
-        // because we were not yet ready. Without this, a read swallowed during wiring never resumes
-        // (the partner starts writable, so no writability transition ever fires).
+        // Release a read the partner parked while we were not writable — no writability transition will fire otherwise.
         partner?.partnerBecameWritable()
         context.fireChannelActive()
     }

@@ -1,11 +1,3 @@
-//
-//  StatsView.swift
-//  APIGhost
-//
-//  Displays capture statistics including captured count, filtered count, and database size.
-//  Reads from AppState for reactive updates.
-//
-
 import SwiftUI
 import Combine
 import os
@@ -31,11 +23,9 @@ struct StatsView: View {
         .onAppear {
             refreshStats()
         }
-        // Refresh stats periodically
         .onReceive(Timer.publish(every: 2, on: .main, in: .common).autoconnect()) { _ in
             refreshStats()
         }
-        // Refresh when traffic list is cleared
         .onReceive(NotificationCenter.default.publisher(for: .clearTrafficList)) { _ in
             Task {
                 try? await Task.sleep(for: .milliseconds(500))
@@ -62,7 +52,6 @@ struct StatsView: View {
                     domainCount = domains
                     databaseSize = size
 
-                    // Update AppState for other components
                     AppState.shared.capturedRequestsCount = capturedCount
                     AppState.shared.filteredRequestsCount = filteredCount
                 }

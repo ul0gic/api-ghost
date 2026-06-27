@@ -1,10 +1,3 @@
-//
-//  MapViewModel.swift
-//  APIGhost
-//
-//  ViewModel for the API Map view, managing domain data and statistics.
-//
-
 import SwiftUI
 
 // MARK: - Map View Model

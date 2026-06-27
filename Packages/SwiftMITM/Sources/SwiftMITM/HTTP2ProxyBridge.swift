@@ -3,10 +3,6 @@ import NIOCore
 import NIOHTTP2
 import NIOPosix
 
-/// Two-leg HTTP/2 proxy over plaintext h2 (prior-knowledge). Isolates the spike's real risk —
-/// flow-control / backpressure across both legs — from TLS, which does not affect windowing.
-/// Each inbound server stream is glued to a fresh upstream client stream; the GlueHandler couples
-/// the two legs' flow-control windows. The TLS engine (`MITMProxy`) reuses this same gluing logic.
 public final class HTTP2ProxyBridge: Sendable {
     public struct UpstreamTarget: Sendable {
         public let host: String

@@ -1,17 +1,9 @@
-//
-//  RealtimeStore+Operations.swift
-//  APIGhost
-//
-//  Cleanup operations and statistics for RealtimeStore.
-//
-
 import Foundation
 import GRDB
 
 // MARK: - Cleanup Operations
 
 extension RealtimeStore {
-    /// Deletes all real-time data (connections, messages, chunks).
     func deleteAll() throws {
         guard let db = DatabaseManager.shared.database else {
             throw DatabaseError.notInitialized
@@ -22,9 +14,6 @@ extension RealtimeStore {
         }
     }
 
-    /// Deletes data older than the specified date.
-    /// - Parameter date: Delete data older than this date
-    /// - Returns: Count of deleted items
     @discardableResult
     func deleteOlderThan(_ date: Date) throws -> RealtimeDeletionResult {
         guard let db = DatabaseManager.shared.database else {
@@ -51,8 +40,6 @@ extension RealtimeStore {
         }
     }
 
-    /// Deletes all data for a specific session.
-    /// - Parameter sessionId: The session ID to delete
     func deleteSession(_ sessionId: String) throws {
         guard let db = DatabaseManager.shared.database else {
             throw DatabaseError.notInitialized
@@ -74,7 +61,6 @@ extension RealtimeStore {
 
     // MARK: - Statistics
 
-    /// Returns aggregate statistics for real-time traffic.
     func getStatistics() throws -> RealtimeStatistics {
         guard let db = DatabaseManager.shared.database else {
             return RealtimeStatistics()
@@ -115,7 +101,6 @@ extension RealtimeStore {
 
 // MARK: - Statistics Model
 
-/// Aggregate statistics for real-time traffic.
 struct RealtimeStatistics {
     var websocketConnections: Int = 0
     var sseConnections: Int = 0

@@ -1,10 +1,3 @@
-//
-//  SQLResultsSupport.swift
-//  APIGhost
-//
-//  Supporting views for SQL results: smart cell, pagination, status bar, empty states, and sheets.
-//
-
 import SwiftUI
 import GRDB
 import UniformTypeIdentifiers
@@ -348,5 +341,3 @@ struct ResultsStatusBar: View {
         return formatter.string(from: date)
     }
 }
-
-// EmptyResultsView, NoQueryView, ExecutingView, and RowDetailSheet are in SQLResultsSheets.swift

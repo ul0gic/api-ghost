@@ -1,10 +1,3 @@
-//
-//  FilterSettingsComponents.swift
-//  APIGhost
-//
-//  Supporting views and types for filter settings: response size limit, list items, toggles.
-//
-
 import SwiftUI
 
 // MARK: - Response Size Limit

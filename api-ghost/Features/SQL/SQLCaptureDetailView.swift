@@ -1,10 +1,3 @@
-//
-//  SQLCaptureDetailView.swift
-//  APIGhost
-//
-//  Full capture detail modal for SQL query results - shows request/response details with copy functionality.
-//
-
 import SwiftUI
 
 // MARK: - SQL Capture Detail View
@@ -18,19 +11,16 @@ struct SQLCaptureDetailView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header
             CaptureDetailHeader(capture: capture, onClose: onClose)
 
             Divider()
                 .background(Color.ghostBorder)
 
-            // Tab bar
             CaptureDetailTabBar(selectedTab: $selectedTab)
 
             Divider()
                 .background(Color.ghostBorder)
 
-            // Content
             ScrollView {
                 Group {
                     switch selectedTab {
@@ -48,7 +38,6 @@ struct SQLCaptureDetailView: View {
             Divider()
                 .background(Color.ghostBorder)
 
-            // Footer with copy actions
             CaptureDetailFooter(capture: capture, copiedItem: $copiedItem)
         }
         .frame(width: 700, height: 600)
@@ -72,15 +61,12 @@ struct CaptureDetailHeader: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            // Method badge
             MethodBadge(method: capture.method)
 
-            // Status badge
             if let status = capture.statusCode {
                 StatusBadge(statusCode: status)
             }
 
-            // URL
             VStack(alignment: .leading, spacing: 2) {
                 Text(capture.host)
                     .font(.system(size: 14, weight: .semibold))
@@ -94,7 +80,6 @@ struct CaptureDetailHeader: View {
 
             Spacer()
 
-            // Close button
             Button(action: onClose) {
                 Image(systemName: "xmark")
                     .font(.system(size: 12, weight: .medium))
@@ -147,7 +132,6 @@ struct RequestSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // Request line
             CaptureDetailCard(title: "Request Line") {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 8) {
@@ -160,7 +144,6 @@ struct RequestSection: View {
                 }
             }
 
-            // Headers
             if let headers = capture.requestHeadersDictionary, !headers.isEmpty {
                 CaptureDetailCard(
                     title: "Headers",
@@ -172,7 +155,6 @@ struct RequestSection: View {
                 }
             }
 
-            // Body
             if let body = capture.requestBody, !body.isEmpty {
                 CaptureDetailCard(
                     title: "Body (\(formatBytes(body.count)))",
@@ -246,7 +228,6 @@ struct ResponseSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // Status line
             CaptureDetailCard(title: "Status") {
                 HStack(spacing: 12) {
                     if let status = capture.statusCode {
@@ -259,7 +240,6 @@ struct ResponseSection: View {
                 }
             }
 
-            // Headers
             if let headers = capture.responseHeadersDictionary, !headers.isEmpty {
                 CaptureDetailCard(
                     title: "Headers",
@@ -271,7 +251,6 @@ struct ResponseSection: View {
                 }
             }
 
-            // Body
             if let body = capture.responseBody, !body.isEmpty {
                 CaptureDetailCard(
                     title: "Body (\(formatBytes(body.count)))",

@@ -1,10 +1,3 @@
-//
-//  BrowserViewCoordinator.swift
-//  APIGhost
-//
-//  WKWebView coordinator handling navigation, popups, and JavaScript dialogs.
-//
-
 import WebKit
 import os
 
@@ -17,13 +10,11 @@ extension BrowserView {
         var viewModel: BrowserViewModel
         private var observations: [NSKeyValueObservation] = []
 
-        /// Maps popup windows to their webviews for safe cleanup
         private var popupWebViews: [ObjectIdentifier: WKWebView] = [:]
 
         /// Holds references to popup windows to prevent deallocation
         private var popupWindows: Set<NSWindow> = []
 
-        /// Tracks windows being cleaned up to prevent double cleanup
         private var windowsBeingCleaned: Set<ObjectIdentifier> = []
 
         /// Holds a reference to the message handler to prevent deallocation

@@ -1,35 +1,20 @@
-//
-//  FilterRule.swift
-//  api-ghost
-//
-//  Created for APIGhost project
-//
-
 import Foundation
 
-/// Represents a filter rule for determining whether to capture traffic.
 struct FilterRule: Identifiable, Codable, Hashable, Sendable {
     // MARK: - Properties
 
-    /// Unique identifier
     let id: String
 
-    /// Whether this rule is currently active
     var isEnabled: Bool
 
-    /// Type of filter matching
     let type: FilterRuleType
 
-    /// Pattern to match against
     let pattern: String
 
-    /// Human-readable description of the rule
     var description: String?
 
-    /// Prebuilt category this rule belongs to; nil for user-added custom rules.
     let categoryID: String?
 
-    /// True for user-added rules, false for prebuilt defaults.
     let isCustom: Bool
 
     // MARK: - Initialization
@@ -68,7 +53,6 @@ struct FilterRule: Identifiable, Codable, Hashable, Sendable {
     }
 }
 
-/// Types of filter rules supported.
 enum FilterRuleType: String, Codable, Hashable, Sendable {
     case domainExact = "domain_exact"
     case domainWildcard = "domain_wildcard"
@@ -82,13 +66,6 @@ enum FilterRuleType: String, Codable, Hashable, Sendable {
 // MARK: - Filter Matching
 
 extension FilterRule {
-    /// Checks if this rule matches the given parameters.
-    /// - Parameters:
-    ///   - host: The request host/domain
-    ///   - path: The request path
-    ///   - contentType: The response content type
-    ///   - statusCode: The response status code
-    /// - Returns: True if the rule matches, false otherwise
     func matches(
         host: String? = nil,
         path: String? = nil,
@@ -149,8 +126,7 @@ extension FilterRule {
 // MARK: - Default Rules
 
 extension FilterRule {
-    /// Last-resort fallback used only when the bundled blocklist resource is missing.
-    /// Social domains are intentionally excluded — they are never blocked by default.
+    /// Social domains are intentionally excluded — never blocked by default.
     static var defaultDomainBlocklist: [FilterRule] {
         let domains = [
             "*.google-analytics.com",
@@ -182,7 +158,6 @@ extension FilterRule {
         }
     }
 
-    /// Default path patterns for tracking endpoints.
     static var defaultPathPatterns: [FilterRule] {
         let patterns = [
             "/collect",
@@ -204,7 +179,6 @@ extension FilterRule {
         }
     }
 
-    /// Default content type filters for non-API content.
     static var defaultContentTypeFilters: [FilterRule] {
         let types = [
             "image/*",
@@ -223,7 +197,6 @@ extension FilterRule {
         }
     }
 
-    /// All default filter rules combined.
     static var allDefaults: [FilterRule] {
         defaultDomainBlocklist + defaultPathPatterns + defaultContentTypeFilters
     }

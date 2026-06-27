@@ -1,11 +1,3 @@
-//
-//  GoldenSupport.swift
-//  api-ghostTests
-//
-//  Deterministic fixtures, DB isolation guard, output normalization, and
-//  golden-file IO for the export regression baseline (build-plan 1.1.2).
-//
-
 import Foundation
 import GRDB
 import Testing
@@ -14,11 +6,7 @@ import Testing
 
 // MARK: - Deterministic capture fixtures
 
-/// A small, representative, fully deterministic set of captures on the CURRENT
-/// (pre-migration) schema. Distinct whole-second timestamps guarantee a stable
-/// `timestamp DESC` ordering in the export. Fixed UUIDs keep output reproducible.
 enum CaptureFixtures {
-    /// 2023-11-14T22:13:20Z — a fixed instant; ISO8601 renders identically on any machine (UTC).
     static let baseEpoch: TimeInterval = 1_700_000_000
 
     static func all() -> [Capture] {
@@ -85,7 +73,6 @@ enum CaptureFixtures {
         )
     }
 
-    /// Exercises null optionals: no query, no headers, no bodies, no status text/content-type/duration.
     static func sparseGet404() -> Capture {
         Capture(
             uuid: "00000000-0000-0000-0000-0000000000A3",
@@ -97,9 +84,6 @@ enum CaptureFixtures {
         )
     }
 
-    /// A tracker-host beacon. Pre-v3 this fixture carried was_filtered=true; post-v3 that
-    /// column is gone and it is just another stored capture (the legacy filtered case is
-    /// exercised by the migration round-trip test, MigrationRoundTripTests).
     static func analyticsBeacon() -> Capture {
         Capture(
             uuid: "00000000-0000-0000-0000-0000000000A4",
@@ -141,7 +125,6 @@ enum CaptureFixtures {
         )
     }
 
-    /// A request captured before any response arrived — null status/response fields.
     static func requestWithoutResponse() -> Capture {
         Capture(
             uuid: "00000000-0000-0000-0000-0000000000A6",
@@ -157,10 +140,6 @@ enum CaptureFixtures {
 
 // MARK: - Isolated database seeding
 
-/// Seeds the shared database with fixtures, guarding against ever touching the
-/// real user database. The export pipeline is hardwired to `DatabaseManager.shared`
-/// (no DI seam), so isolation is achieved by redirecting `CFFIXED_USER_HOME` in the
-/// test scheme; this guard refuses to mutate anything if that redirect is not in effect.
 enum FixtureDatabase {
     enum FixtureError: Error, CustomStringConvertible {
         case unsafeDatabasePath(String)
@@ -177,7 +156,6 @@ enum FixtureDatabase {
         }
     }
 
-    /// The sentinel folder name that the redirected test home must contain.
     static let isolationSentinel = "TestHome"
 
     static func assertIsolated() throws {
@@ -187,7 +165,6 @@ enum FixtureDatabase {
         }
     }
 
-    /// Wipes the isolated DB and inserts the given fixtures in a single transaction.
     static func reseed(with captures: [Capture] = CaptureFixtures.all()) throws {
         try assertIsolated()
         try DatabaseManager.shared.wipeAllData()
@@ -197,10 +174,6 @@ enum FixtureDatabase {
 
 // MARK: - Output normalization
 
-/// Canonicalizes export output so byte comparisons are stable. JSON export already
-/// uses `.sortedKeys`, but HAR does not, and header/query arrays inherit dictionary
-/// iteration order. This re-serializes with sorted keys and sorts any array of
-/// `{name, value}` pairs, yielding a deterministic representation for both formats.
 enum OutputNormalizer {
     static func canonicalString(from data: Data) throws -> String {
         let object = try JSONSerialization.jsonObject(with: data, options: [.fragmentsAllowed])
@@ -253,10 +226,6 @@ enum OutputNormalizer {
 
 // MARK: - SQLite content extraction
 
-/// Reads the captures out of an exported SQLite file (excluding the auto-increment
-/// `id`, which is not stable across runs) into a canonical, comparable form. This
-/// proves the SQLite export preserves all capture data rather than byte-comparing a
-/// non-deterministic database file.
 enum SQLiteContent {
     static func canonicalString(ofExportAt url: URL) throws -> String {
         let queue = try DatabaseQueue(path: url.path)
@@ -300,10 +269,6 @@ enum SQLiteContent {
 
 // MARK: - Golden file IO
 
-/// Compares canonical output against a committed golden fixture. On a missing golden
-/// (or with `RECORD_GOLDEN` set) it writes the fixture next to this source file via
-/// `#filePath`; a missing golden without record mode is reported as a failure so CI
-/// can never pass silently on absent baselines.
 enum Golden {
     static func goldenDirectory(file: StaticString = #filePath) -> URL {
         URL(fileURLWithPath: "\(file)")

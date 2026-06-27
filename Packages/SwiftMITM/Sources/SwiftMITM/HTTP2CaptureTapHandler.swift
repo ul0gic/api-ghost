@@ -3,8 +3,6 @@ import NIOCore
 import NIOHPACK
 import NIOHTTP2
 
-/// Passes HTTP/2 frame payloads through untouched while emitting capture events. Reports DATA-frame
-/// sizes only (never accumulates bodies) so the capture path cannot itself become an unbounded buffer.
 final class HTTP2CaptureTapHandler: ChannelInboundHandler {
     typealias InboundIn = HTTP2Frame.FramePayload
     typealias InboundOut = HTTP2Frame.FramePayload

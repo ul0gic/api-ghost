@@ -1,27 +1,13 @@
-//
-//  ActionsView.swift
-//  APIGhost
-//
-//  Sidebar action buttons for Wipe, Export, Map, and Settings.
-//  Action handlers will be connected to actual functionality in later phases.
-//
-
 import SwiftUI
 
 struct ActionsView: View {
-    // Action handlers - will be connected to actual functionality in Phase 4 (Export/Wipe)
-    // and Phase 5 (Settings) of the build plan
     var onWipe: () -> Void = {
-        // TODO: Phase 4.6 - Will trigger wipe confirmation dialog
     }
     var onExport: () -> Void = {
-        // TODO: Phase 4.5 - Will trigger export dialog sheet
     }
     var onOpenMap: () -> Void = {
-        // TODO: Phase 4.2 - Will navigate to Endpoint Map tab
     }
     var onOpenSettings: () -> Void = {
-        // TODO: Phase 5.1 - Will open Settings window
     }
 
     var body: some View {

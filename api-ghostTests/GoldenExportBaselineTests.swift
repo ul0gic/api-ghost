@@ -1,19 +1,3 @@
-//
-//  GoldenExportBaselineTests.swift
-//  api-ghostTests
-//
-//  Locks the export contract for SQLite, JSON, and HAR across the
-//  includeHeaders/includeBodies paths (build-plan 1.1.2, regenerated for 1.2.4).
-//
-//  Post-v3 migration: was_filtered/filter_reason are gone and ExportManager's
-//  `includeFiltered` flag is a no-op (fetchCaptures returns every stored row), so the
-//  former filtered/unfiltered golden split collapsed into one golden per output shape.
-//  The `includeFiltered` parameter is still exercised — via dedicated equivalence tests
-//  proving true and false produce identical output.
-//
-//  Serialized: every test reseeds the single shared database, so they must not race.
-//
-
 import Foundation
 import Testing
 

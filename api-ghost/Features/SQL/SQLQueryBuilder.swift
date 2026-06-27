@@ -1,10 +1,3 @@
-//
-//  SQLQueryBuilder.swift
-//  APIGhost
-//
-//  Query builder panel and filter row views for the SQL editor.
-//
-
 import SwiftUI
 
 // MARK: - Query Builder Panel

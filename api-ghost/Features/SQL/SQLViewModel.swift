@@ -1,10 +1,3 @@
-//
-//  SQLViewModel.swift
-//  APIGhost
-//
-//  ViewModel for SQL Database Explorer - manages query execution, history, and schema info.
-//
-
 import SwiftUI
 import os
 
@@ -17,56 +10,40 @@ private let logger = Logger(subsystem: "corelift.api-ghost", category: "SQLViewM
 final class SQLViewModel {
     // MARK: - Properties
 
-    /// Current SQL query text
     var queryText: String = ""
 
-    /// Current query result (nil if no query executed)
     var queryResult: SQLQueryResult?
 
-    /// Error message from last query (nil if successful)
     var errorMessage: String?
 
-    /// Whether a query is currently executing
     var isExecuting: Bool = false
 
-    /// Query history
     var queryHistory: [QueryHistoryItem] = []
 
-    /// Schema information
     var schemaColumns: [SchemaColumn] = []
     var schemaIndexes: [SchemaIndex] = []
     var tableStatistics: TableStatistics?
 
-    /// Pagination
     var currentPage: Int = 1
     var rowsPerPage: Int = 100
     var totalResultRows: Int = 0
 
-    /// Sorting
     var sortConfig = SortConfiguration()
 
-    /// Row limit for queries (safety limit)
     var queryRowLimit: Int = 1000
 
-    /// Selected row for detail view
     var selectedRowIndex: Int?
 
-    /// Whether to show row detail sheet
     var showingRowDetail: Bool = false
 
-    /// Query builder filters
     var queryBuilderFilters: [QueryBuilderFilter] = []
 
-    /// Time range filter
     var timeRangeFilter: TimeRangeFilter = .all
 
-    /// Show query builder panel
     var showQueryBuilder: Bool = false
 
-    /// Column widths (persisted)
     var columnWidths: [String: CGFloat] = [:]
 
-    /// Selected capture ID for detail view
     var selectedCaptureId: Int64?
 
     // MARK: - Default Columns for API Analysis
@@ -93,7 +70,6 @@ final class SQLViewModel {
 
         var rows = result.rows
 
-        // Apply sorting if configured
         if let columnIndex = sortConfig.columnIndex, columnIndex < result.columns.count {
             rows = rows.sorted { row1, row2 in
                 let val1 = row1[columnIndex]
@@ -103,7 +79,6 @@ final class SQLViewModel {
             }
         }
 
-        // Apply pagination
         let startIndex = (currentPage - 1) * rowsPerPage
         let endIndex = min(startIndex + rowsPerPage, rows.count)
 
@@ -129,7 +104,6 @@ final class SQLViewModel {
 
     // MARK: - Query Execution
 
-    /// Executes the current SQL query
     func executeQuery() {
         guard !queryText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             errorMessage = "Query cannot be empty"
@@ -228,7 +202,6 @@ final class SQLViewModel {
         )
     }
 
-    /// Executes a predefined quick query
     func executeQuickQuery(_ type: QuickQueryType) {
         queryText = type.sql
         executeQuery()
@@ -241,7 +214,6 @@ final class SQLViewModel {
 
         do {
             try db.read { db in
-                // Load columns
                 let columnRows = try Row.fetchAll(db, sql: "PRAGMA table_info(captures)")
                 schemaColumns = columnRows.map { row in
                     SchemaColumn(
@@ -253,13 +225,11 @@ final class SQLViewModel {
                     )
                 }
 
-                // Load indexes
                 let indexRows = try Row.fetchAll(db, sql: "PRAGMA index_list(captures)")
                 schemaIndexes = indexRows.compactMap { row -> SchemaIndex? in
                     guard let indexName: String = row["name"] else { return nil }
                     let isUnique: Bool = row["unique"] == 1
 
-                    // Get columns for this index
                     let columnRows = try? Row.fetchAll(db, sql: "PRAGMA index_info('\(indexName)')")
                     let columns = columnRows?.compactMap { $0["name"] as? String } ?? []
 
@@ -305,7 +275,6 @@ final class SQLViewModel {
     // MARK: - Query History
 
     private func loadQueryHistory() {
-        // Load from UserDefaults
         if let data = UserDefaults.standard.data(forKey: "SQLQueryHistory"),
            let history = try? JSONDecoder().decode([QueryHistoryItem].self, from: data) {
             queryHistory = history
@@ -313,7 +282,6 @@ final class SQLViewModel {
     }
 
     private func saveQueryHistory() {
-        // Keep only last 50 queries
         let historyToSave = Array(queryHistory.prefix(50))
         if let data = try? JSONEncoder().encode(historyToSave) {
             UserDefaults.standard.set(data, forKey: "SQLQueryHistory")
@@ -365,6 +333,4 @@ final class SQLViewModel {
     func previousPage() {
         goToPage(currentPage - 1)
     }
-
-    // Export, query builder, column management, and helpers are in SQLViewModel+Extensions.swift
 }

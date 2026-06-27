@@ -19,8 +19,6 @@ final class ClientConsumerState: @unchecked Sendable {
     }
 }
 
-/// Plaintext-h2 client with manual read control so the test can stall (and later resume) consumption
-/// to exercise proxy backpressure. Counts response body bytes and completes when the stream ends.
 final class TestHTTP2Client {
     private let group: EventLoopGroup
     let state = ClientConsumerState()

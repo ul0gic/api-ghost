@@ -1,16 +1,3 @@
-//
-//  FilterContractTests.swift
-//  api-ghostTests
-//
-//  build-plan 1.3.3 — locks the filtering data contract (DefaultBlocklist.json v3,
-//  FilterCategory/FilterRule tagging, NoiseFilter default-on/off activation).
-//
-//  Two layers: the on-disk DTO is verified directly against the bundled JSON (no
-//  singleton); the runtime activation is verified through NoiseFilter.shared, whose
-//  inputs are isolated in this test process (Bundle.main is the host app bundle and
-//  UserDefaults is redirected via CFFIXED_USER_HOME), so it carries no real user state.
-//
-
 import Foundation
 import Testing
 

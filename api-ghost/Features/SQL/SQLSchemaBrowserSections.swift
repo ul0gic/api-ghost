@@ -1,10 +1,3 @@
-//
-//  SQLSchemaBrowserSections.swift
-//  APIGhost
-//
-//  Schema browser child sections: statistics, history, and helper rows.
-//
-
 import SwiftUI
 
 // MARK: - Statistics Section

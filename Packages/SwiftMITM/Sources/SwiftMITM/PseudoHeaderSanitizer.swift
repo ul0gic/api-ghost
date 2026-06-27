@@ -21,11 +21,6 @@ public struct SanitizedRequestLine: Sendable, Equatable {
     public let headers: [HTTPHeaderField]
 }
 
-/// Defends the h2→h1 translation seam against the request-smuggling CVE class (the reason
-/// swift-nio-http2 carries its own HPACK validation, re-checked here because this is a security tool
-/// parsing hostile traffic). Rejects CR/LF and control-character injection in pseudo-headers,
-/// duplicate/missing pseudo-headers, connection-specific headers that must not survive into h1
-/// (RFC 9113 §8.2.2), and CL/TE framing ambiguity. Pure and synchronous — trivially fuzzable.
 public enum PseudoHeaderSanitizer {
     private static let connectionSpecific: Set<String> = [
         "connection", "keep-alive", "proxy-connection", "upgrade"

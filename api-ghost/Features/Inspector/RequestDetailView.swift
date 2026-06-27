@@ -1,10 +1,3 @@
-//
-//  RequestDetailView.swift
-//  api-ghost
-//
-//  Displays request details including method, path, headers, and body
-//
-
 import SwiftUI
 
 // MARK: - Request Detail View
@@ -15,20 +8,17 @@ struct RequestDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                // Request line
                 RequestLineView(capture: capture)
 
                 Divider()
                     .background(Color.ghostBorder)
 
-                // Headers section
                 if let headers = capture.requestHeadersDictionary, !headers.isEmpty {
                     DetailSection(title: "HEADERS") {
                         HeadersView(headers: headers)
                     }
                 }
 
-                // Body section
                 if let body = capture.requestBody, !body.isEmpty {
                     DetailSection(title: "BODY") {
                         BodyView(data: body, contentType: getRequestContentType())
@@ -176,7 +166,6 @@ struct BodyView: View {
 
     private var isJSON: Bool {
         guard let contentType = contentType?.lowercased() else {
-            // Try to detect JSON from content
             if let text = String(data: data, encoding: .utf8) {
                 let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
                 return trimmed.hasPrefix("{") || trimmed.hasPrefix("[")

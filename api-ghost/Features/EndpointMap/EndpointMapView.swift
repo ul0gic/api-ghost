@@ -1,11 +1,3 @@
-//
-//  EndpointMapView.swift
-//  api-ghost
-//
-//  Endpoint Map view displaying captured API endpoints in a hierarchical tree.
-//  Shows domains, path segments, methods, call counts, and findings.
-//
-
 import SwiftUI
 
 // MARK: - Endpoint Map View
@@ -16,7 +8,6 @@ struct EndpointMapView: View {
     @State private var selectedNode: EndpointTreeNode?
     @State private var showExportSheet: Bool = false
 
-    // Summary stats
     @State private var domainCount: Int = 0
     @State private var endpointCount: Int = 0
     @State private var requestCount: Int = 0
@@ -24,7 +15,6 @@ struct EndpointMapView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header with Export button
             headerBar
 
             Divider()
@@ -35,7 +25,6 @@ struct EndpointMapView: View {
             } else if treeNodes.isEmpty {
                 emptyStateView
             } else {
-                // Tree content
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0) {
                         ForEach(treeNodes) { node in
@@ -52,7 +41,6 @@ struct EndpointMapView: View {
                 Divider()
                     .background(Color.ghostBorder)
 
-                // Summary footer
                 summaryFooter
             }
         }
@@ -175,9 +163,6 @@ struct EndpointMapView: View {
     // MARK: - Data Loading
 
     private func loadEndpoints() {
-        // TODO: Rewrite with SQL aggregation for performance
-        // Current implementation loads all captures into memory which hangs with large datasets
-        // For now, show empty state - will rebuild with charts/graphs visualization
         isLoading = false
         treeNodes = []
         domainCount = 0
@@ -198,16 +183,13 @@ struct EndpointTreeRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Row content
             HStack(spacing: 0) {
-                // Indentation
                 ForEach(0..<depth, id: \.self) { _ in
                     Rectangle()
                         .fill(Color.clear)
                         .frame(width: 16)
                 }
 
-                // Expand/collapse button for nodes with children
                 if node.hasChildren {
                     Button(action: { node.isExpanded.toggle() }, label: {
                         Image(systemName: node.isExpanded ? "chevron.down" : "chevron.right")
@@ -222,11 +204,9 @@ struct EndpointTreeRow: View {
                         .frame(width: 16)
                 }
 
-                // Node icon
                 nodeIcon
                     .frame(width: 20)
 
-                // Node content based on type
                 switch node.nodeType {
                 case .domain:
                     domainContent
@@ -238,7 +218,6 @@ struct EndpointTreeRow: View {
 
                 Spacer()
 
-                // Findings indicator
                 if node.findingsCount > 0 {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .font(.system(size: 10))
@@ -246,7 +225,6 @@ struct EndpointTreeRow: View {
                         .padding(.trailing, 4)
                 }
 
-                // Call count badge
                 if node.totalCallCount > 0 {
                     Text("\(node.totalCallCount)")
                         .font(.system(size: 10, weight: .medium, design: .monospaced))
@@ -271,7 +249,6 @@ struct EndpointTreeRow: View {
                 }
             }
 
-            // Expanded children
             if node.isExpanded {
                 ForEach(node.children) { child in
                     EndpointTreeRow(

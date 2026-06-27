@@ -1,10 +1,3 @@
-//
-//  ResponseDetailView.swift
-//  api-ghost
-//
-//  Displays response details including status, headers, and body
-//
-
 import SwiftUI
 
 // MARK: - Response Detail View
@@ -15,20 +8,17 @@ struct ResponseDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                // Status line
                 ResponseStatusView(capture: capture)
 
                 Divider()
                     .background(Color.ghostBorder)
 
-                // Headers section
                 if let headers = capture.responseHeadersDictionary, !headers.isEmpty {
                     DetailSection(title: "HEADERS") {
                         HeadersView(headers: headers)
                     }
                 }
 
-                // Body section
                 if let body = capture.responseBody, !body.isEmpty {
                     DetailSection(title: "BODY") {
                         BodyView(data: body, contentType: capture.contentType)

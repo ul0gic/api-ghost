@@ -10,8 +10,6 @@ public struct MintedIdentity: Sendable {
     public let privateKey: NIOSSLPrivateKeySource
 }
 
-/// In-memory MITM root + per-host P256 leaf minting. CA key lives only in memory for the spike;
-/// Phase 4 sources it from Keychain (`SecKey`) instead — the minting path is identical.
 public final class CertificateAuthority: Sendable {
     public let caCertificate: Certificate
     public let caCertificatePEM: String
@@ -47,7 +45,6 @@ public final class CertificateAuthority: Sendable {
         self.leafCache = NIOLockedValueBox([:])
     }
 
-    /// Mints (and caches) a leaf for the SNI host, signed by the root. Cached per host.
     public func leaf(forHost host: String) throws -> MintedIdentity {
         let key = host.lowercased()
         if let cached = leafCache.withLockedValue({ $0[key] }) {

@@ -1,16 +1,6 @@
-//
-//  APIMapBuilder.swift
-//  APIGhost
-//
-//  Builds the API map data structure from captured requests in the database.
-//  Performs SQL aggregation for efficiency with large datasets.
-//
-
 import Foundation
 import GRDB
 
-/// Builds hierarchical API maps from captured traffic data.
-/// Uses SQL aggregation for efficient processing of large capture sets.
 final class APIMapBuilder: Sendable {
     // MARK: - Singleton
 
@@ -24,11 +14,7 @@ final class APIMapBuilder: Sendable {
 
     // MARK: - Build Map
 
-    /// Builds the complete API map from all captured requests.
-    /// Groups by normalized path patterns. Filtered traffic is never persisted, so no exclusion is applied.
-    ///
-    /// - Returns: Array of APIDomain objects sorted by total requests (most active first)
-    /// - Throws: APIMapError if database access fails
+    /// Filtered traffic is never persisted, so no exclusion is applied.
     func buildMap() async throws -> [APIDomain] {
         guard let db = DatabaseManager.shared.database else {
             throw APIMapError.databaseNotAvailable
@@ -94,11 +80,6 @@ final class APIMapBuilder: Sendable {
         )
     }
 
-    /// Builds API map statistics without full tree construction.
-    /// More efficient for displaying summary stats.
-    ///
-    /// - Returns: APIMapStatistics with counts and breakdowns
-    /// - Throws: APIMapError if database access fails
     func buildStatistics() async throws -> APIMapStatistics {
         guard let db = DatabaseManager.shared.database else {
             throw APIMapError.databaseNotAvailable
@@ -162,9 +143,7 @@ final class APIMapBuilder: Sendable {
 
     // MARK: - Build Domain Tree
 
-    /// Builds the tree structure for a single domain.
     private func buildDomainTree(host: String, endpoints: [RawEndpointData]) -> APIDomain {
-        // Normalize and group endpoints
         var normalizedGroups: [String: [NormalizedEndpointData]] = [:]
         var allMethods: Set<String> = []
         var totalRequests = 0
@@ -189,14 +168,12 @@ final class APIMapBuilder: Sendable {
             totalRequests += raw.hitCount
         }
 
-        // Merge grouped endpoints into APIEndpoint objects
         var mergedEndpoints: [APIEndpoint] = []
         for (_, group) in normalizedGroups {
             let merged = mergeEndpoints(group)
             mergedEndpoints.append(merged)
         }
 
-        // Build hierarchical path tree
         let rootNodes = buildPathTree(from: mergedEndpoints)
 
         return APIDomain(
@@ -211,7 +188,6 @@ final class APIMapBuilder: Sendable {
 
     // MARK: - Build Path Tree
 
-    /// Builds a hierarchical path tree from a list of endpoints.
     private func buildPathTree(from endpoints: [APIEndpoint]) -> [PathNode] {
         var rootDict: [String: PathNodeBuilder] = [:]
 
@@ -225,13 +201,11 @@ final class APIMapBuilder: Sendable {
             insertIntoTree(&rootDict, segments: segments, endpoint: endpoint, index: 0)
         }
 
-        // Convert builders to final PathNode objects
         return rootDict.values
             .map { $0.build() }
             .sorted { $0.segment.lowercased() < $1.segment.lowercased() }
     }
 
-    /// Recursively inserts an endpoint into the path tree.
     private func insertIntoTree(
         _ nodes: inout [String: PathNodeBuilder],
         segments: [String],
@@ -244,7 +218,6 @@ final class APIMapBuilder: Sendable {
         let isParameter = segment.hasPrefix("{") && segment.hasSuffix("}")
         let paramType = isParameter ? parseParameterType(segment) : nil
 
-        // Create node if it doesn't exist
         if nodes[segment] == nil {
             nodes[segment] = PathNodeBuilder(
                 segment: segment,
@@ -254,10 +227,8 @@ final class APIMapBuilder: Sendable {
         }
 
         if index == segments.count - 1 {
-            // Last segment - add endpoint here
             nodes[segment]?.endpoints.append(endpoint)
         } else {
-            // Continue building tree with remaining segments
             if let node = nodes[segment] {
                 insertIntoTree(&node.children, segments: segments, endpoint: endpoint, index: index + 1)
                 nodes[segment] = node
@@ -265,7 +236,6 @@ final class APIMapBuilder: Sendable {
         }
     }
 
-    /// Parses the parameter type from a placeholder string like "{uuid}".
     private func parseParameterType(_ placeholder: String) -> ParameterType {
         let inner = String(placeholder.dropFirst().dropLast())
         return ParameterType(rawValue: inner) ?? .unknown
@@ -273,7 +243,6 @@ final class APIMapBuilder: Sendable {
 
     // MARK: - Merge Endpoints
 
-    /// Merges multiple endpoint observations into a single APIEndpoint.
     private func mergeEndpoints(_ endpoints: [NormalizedEndpointData]) -> APIEndpoint {
         guard let first = endpoints.first else {
             fatalError("Cannot merge empty endpoint list")
@@ -308,7 +277,6 @@ final class APIMapBuilder: Sendable {
             allContentTypes.formUnion(ep.contentTypes)
         }
 
-        // Keep up to 3 unique example paths
         let uniqueExamples = Array(Set(allExamples)).prefix(3)
 
         return APIEndpoint(
@@ -326,7 +294,6 @@ final class APIMapBuilder: Sendable {
 
 // MARK: - Supporting Types
 
-/// Raw endpoint data fetched from database before normalization.
 private struct RawEndpointData {
     let host: String
     let path: String
@@ -338,7 +305,6 @@ private struct RawEndpointData {
     let contentTypes: [String]
 }
 
-/// Normalized endpoint data for grouping and merging.
 private struct NormalizedEndpointData {
     let normalizedPath: String
     let originalPath: String
@@ -350,7 +316,6 @@ private struct NormalizedEndpointData {
     let contentTypes: [String]
 }
 
-/// Mutable builder for constructing PathNode trees.
 private class PathNodeBuilder {
     let segment: String
     let isParameter: Bool

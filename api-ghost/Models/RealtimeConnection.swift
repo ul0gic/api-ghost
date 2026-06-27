@@ -1,21 +1,11 @@
-//
-//  RealtimeConnection.swift
-//  api-ghost
-//
-//  Created for APIGhost project
-//  Represents a WebSocket or SSE connection for real-time traffic capture.
-//
-
 import Foundation
 import GRDB
 
-/// The type of real-time connection.
 enum ConnectionType: String, Codable, Sendable {
     case websocket
     case sse
 }
 
-/// The current status of a real-time connection.
 enum ConnectionStatus: String, Codable, Sendable {
     case connecting
     case open
@@ -24,72 +14,49 @@ enum ConnectionStatus: String, Codable, Sendable {
     case error
 }
 
-/// Represents a WebSocket or Server-Sent Events (SSE) connection.
-/// Tracks the lifecycle and statistics of real-time connections.
 struct RealtimeConnection: Codable, Sendable {
     // MARK: - Properties
 
-    /// Auto-incremented database primary key
     var id: Int64?
 
-    /// Unique connection identifier from JavaScript interceptor
     let connectionId: String
 
-    /// Session identifier for grouping related connections
     var sessionId: String?
 
-    /// Type of connection (websocket or sse)
     let connectionType: ConnectionType
 
-    /// Full URL of the connection
     let url: String
 
-    /// Host extracted from URL
     let host: String
 
-    /// Path extracted from URL
     let path: String
 
-    /// WebSocket protocol (if applicable)
     var websocketProtocol: String?
 
-    /// WebSocket extensions (if applicable)
     var extensions: String?
 
-    /// SSE withCredentials flag
     var withCredentials: Bool
 
-    /// Timestamp when connection was opened
     let openedAt: Date
 
-    /// Timestamp when connection was closed (nil if still open)
     var closedAt: Date?
 
-    /// Duration in milliseconds (set when closed)
     var durationMs: Int?
 
-    /// Current connection status
     var status: ConnectionStatus
 
-    /// WebSocket close code
     var closeCode: Int?
 
-    /// WebSocket close reason
     var closeReason: String?
 
-    /// Whether WebSocket closed cleanly
     var wasClean: Bool?
 
-    /// Count of messages sent
     var messagesSent: Int
 
-    /// Count of messages received
     var messagesReceived: Int
 
-    /// Total bytes sent
     var bytesSent: Int
 
-    /// Total bytes received
     var bytesReceived: Int
 
     // MARK: - Initialization
@@ -140,7 +107,6 @@ struct RealtimeConnection: Codable, Sendable {
         self.bytesReceived = bytesReceived
     }
 
-    /// Creates a connection from URL string, extracting host and path.
     static func create(
         connectionId: String,
         sessionId: String?,
@@ -167,10 +133,8 @@ struct RealtimeConnection: Codable, Sendable {
 // MARK: - GRDB Protocols
 
 extension RealtimeConnection: FetchableRecord, PersistableRecord {
-    /// Database table name
     static let databaseTableName = "realtime_connections"
 
-    /// Column to row key mapping
     enum Columns {
         static let id = Column(CodingKeys.id)
         static let connectionId = Column(CodingKeys.connectionId)
@@ -195,7 +159,6 @@ extension RealtimeConnection: FetchableRecord, PersistableRecord {
         static let bytesReceived = Column(CodingKeys.bytesReceived)
     }
 
-    /// Custom column names to match database schema (snake_case)
     enum CodingKeys: String, CodingKey {
         case id
         case connectionId = "connection_id"
@@ -224,13 +187,11 @@ extension RealtimeConnection: FetchableRecord, PersistableRecord {
 // MARK: - Identifiable
 
 extension RealtimeConnection: Identifiable {
-    // id property is already defined
 }
 
 // MARK: - Computed Properties
 
 extension RealtimeConnection {
-    /// Returns a human-readable connection type string
     var typeDisplayName: String {
         switch connectionType {
         case .websocket:
@@ -240,22 +201,18 @@ extension RealtimeConnection {
         }
     }
 
-    /// Returns the total message count (sent + received)
     var totalMessages: Int {
         messagesSent + messagesReceived
     }
 
-    /// Returns the total bytes transferred
     var totalBytes: Int {
         bytesSent + bytesReceived
     }
 
-    /// Returns whether the connection is currently active
     var isActive: Bool {
         status == .connecting || status == .open
     }
 
-    /// Returns a formatted duration string
     var formattedDuration: String {
         guard let ms = durationMs else { return "-" }
         if ms < 1000 {

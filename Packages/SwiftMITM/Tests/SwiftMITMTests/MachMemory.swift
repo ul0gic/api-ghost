@@ -1,8 +1,5 @@
 import Darwin
 
-/// Process resident memory in bytes (mach_task_basic_info). A failure of backpressure anywhere in
-/// the in-process origin→proxy→client chain balloons this toward the body size; correct backpressure
-/// keeps it flat at window-sized buffers.
 enum MachMemory {
     static func residentBytes() -> UInt64 {
         var info = mach_task_basic_info()

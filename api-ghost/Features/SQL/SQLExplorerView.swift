@@ -1,11 +1,3 @@
-//
-//  SQLExplorerView.swift
-//  APIGhost
-//
-//  Main SQL Database Explorer view - Supabase-style database explorer with
-//  manual SQL queries and point-and-click table browsing.
-//
-
 import SwiftUI
 
 // MARK: - SQL Explorer View
@@ -15,28 +7,23 @@ struct SQLExplorerView: View {
     @State private var schemaBrowserWidth: CGFloat = 220
     @State private var editorHeight: CGFloat = 200
 
-    /// Width constraints for schema browser
     private let minimumBrowserWidth: CGFloat = 180
     private let maximumBrowserWidth: CGFloat = 350
 
-    /// Height constraints for editor
     private let minimumEditorHeight: CGFloat = 120
     private let minimumResultsHeight: CGFloat = 150
 
     var body: some View {
         HStack(spacing: 0) {
-            // Left panel: Schema Browser
             SQLSchemaBrowser(viewModel: viewModel)
                 .frame(width: schemaBrowserWidth)
 
-            // Vertical resize handle
             SchemaBrowserResizeHandle(
                 width: $schemaBrowserWidth,
                 minWidth: minimumBrowserWidth,
                 maxWidth: maximumBrowserWidth
             )
 
-            // Right panel: Editor + Results
             VStack(spacing: 0) {
                 GeometryReader { geometry in
                     let totalHeight = geometry.size.height
@@ -46,11 +33,9 @@ struct SQLExplorerView: View {
                     )
 
                     VStack(spacing: 0) {
-                        // SQL Editor
                         SQLEditorView(viewModel: viewModel)
                             .frame(height: clampedEditorHeight)
 
-                        // Horizontal resize handle
                         EditorResultsResizeHandle(
                             height: $editorHeight,
                             totalHeight: totalHeight,
@@ -58,7 +43,6 @@ struct SQLExplorerView: View {
                             minResultsHeight: minimumResultsHeight
                         )
 
-                        // Results Table
                         SQLResultsView(viewModel: viewModel)
                             .frame(maxHeight: .infinity)
                     }
@@ -166,7 +150,7 @@ struct EditorResultsResizeHandle: View {
     }
 }
 
-// MARK: - SQL Explorer Header (Optional standalone header)
+// MARK: - SQL Explorer Header
 
 struct SQLExplorerHeader: View {
     @State private var appState = AppState.shared
@@ -183,7 +167,6 @@ struct SQLExplorerHeader: View {
 
             Spacer()
 
-            // Close button to return to browser
             Button(action: {
                 withAnimation(.easeInOut(duration: 0.15)) {
                     appState.selectedTab = .browser
@@ -205,7 +188,7 @@ struct SQLExplorerHeader: View {
     }
 }
 
-// MARK: - Full SQL Content View (with header)
+// MARK: - Full SQL Content View
 
 struct SQLContentViewWithHeader: View {
     var body: some View {

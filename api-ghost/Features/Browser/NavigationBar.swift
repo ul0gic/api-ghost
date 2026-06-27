@@ -1,10 +1,3 @@
-//
-//  NavigationBar.swift
-//  APIGhost
-//
-//  Browser navigation bar with back/forward/reload buttons, URL field, and recording indicator.
-//
-
 import SwiftUI
 
 // MARK: - Navigation Bar
@@ -15,13 +8,10 @@ struct NavigationBar: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            // Navigation buttons
             NavigationButtons(viewModel: viewModel)
 
-            // URL field
             URLTextField(viewModel: viewModel, isFocused: $urlFieldFocused)
 
-            // Recording indicator
             RecordingIndicator()
         }
         .padding(.horizontal, 12)
@@ -122,7 +112,6 @@ struct RecordingIndicator: View {
     var body: some View {
         Button(action: toggleRecording) {
             HStack(spacing: 6) {
-                // Recording dot with pulse animation
                 Circle()
                     .fill(isRecording ? Color.ghostError : Color.ghostAccent)
                     .frame(width: 8, height: 8)
@@ -149,7 +138,6 @@ struct RecordingIndicator: View {
         }
         .buttonStyle(.plain)
         .onAppear {
-            // Initialize from AppState (which is set during app init)
             isRecording = AppState.shared.isRecording
             startPulseAnimation()
         }
@@ -160,7 +148,6 @@ struct RecordingIndicator: View {
             isRecording.toggle()
         }
 
-        // Use TrafficCapture methods for consistent state management
         if isRecording {
             trafficCapture.resumeCapture()
         } else {

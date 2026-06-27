@@ -1,29 +1,16 @@
-//
-//  Domain.swift
-//  api-ghost
-//
-//  Created for APIGhost project
-//
-
 import Foundation
 
-/// Represents a domain (host) with aggregated request information for sidebar display.
 struct Domain: Identifiable, Codable, Hashable {
     // MARK: - Properties
 
-    /// Unique identifier (same as host)
     let id: String
 
-    /// The domain host name
     let host: String
 
-    /// Total number of requests to this domain
     var requestCount: Int
 
-    /// List of paths accessed on this domain
     var paths: [PathInfo]
 
-    /// When this domain was last seen
     var lastSeen: Date
 
     // MARK: - Initialization
@@ -37,23 +24,17 @@ struct Domain: Identifiable, Codable, Hashable {
     }
 }
 
-/// Represents a path endpoint within a domain.
 struct PathInfo: Identifiable, Codable, Hashable {
     // MARK: - Properties
 
-    /// Unique identifier combining method and path
     var id: String { "\(method):\(path)" }
 
-    /// The request path
     let path: String
 
-    /// HTTP method used
     let method: String
 
-    /// Number of times this path was accessed
     var count: Int
 
-    /// Most recent status code received
     var lastStatus: Int?
 
     // MARK: - Initialization
@@ -69,9 +50,6 @@ struct PathInfo: Identifiable, Codable, Hashable {
 // MARK: - Domain Aggregation
 
 extension Domain {
-    /// Aggregates captures into domains with their paths.
-    /// - Parameter captures: Array of captures to aggregate
-    /// - Returns: Array of domains sorted by request count (descending)
     static func aggregate(from captures: [Capture]) -> [Domain] {
         var domainMap: [String: Domain] = [:]
 
@@ -82,7 +60,6 @@ extension Domain {
                 domain.requestCount += 1
                 domain.lastSeen = max(domain.lastSeen, capture.timestamp)
 
-                // Update or add path
                 let pathKey = "\(capture.method):\(capture.path)"
                 if let index = domain.paths.firstIndex(where: { $0.id == pathKey }) {
                     domain.paths[index].count += 1

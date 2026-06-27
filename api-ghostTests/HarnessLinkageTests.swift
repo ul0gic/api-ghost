@@ -1,11 +1,3 @@
-//
-//  HarnessLinkageTests.swift
-//  api-ghostTests
-//
-//  Smoke tests proving both XCTest and the @testable host-app import are wired.
-//  Swift Testing coverage lives in GoldenExportBaselineTests.
-//
-
 import XCTest
 
 @testable import APIGhost

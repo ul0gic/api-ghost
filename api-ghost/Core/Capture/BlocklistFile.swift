@@ -1,19 +1,10 @@
-//
-//  BlocklistFile.swift
-//  api-ghost
-//
-//  Created for APIGhost project
-//
-
 import Foundation
 
-/// On-disk shape of the bundled `DefaultBlocklist.json` (schema version 3).
 struct BlocklistFile: Decodable {
     let version: Int
     let categories: [BlocklistCategory]
 }
 
-/// One prebuilt category as stored in `DefaultBlocklist.json`.
 struct BlocklistCategory: Decodable {
     let id: String
     let name: String
@@ -40,7 +31,6 @@ struct BlocklistCategory: Decodable {
 }
 
 extension BlocklistCategory {
-    /// Maps the on-disk category into the in-memory contract, tagging every rule with this category id.
     func toFilterCategory() -> FilterCategory {
         FilterCategory(
             id: id,

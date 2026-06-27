@@ -1,11 +1,3 @@
-//
-//  ExportManager.swift
-//  api-ghost
-//
-//  Manages exporting captured traffic data in various formats.
-//  Supports SQLite database copy, JSON, and HAR export formats.
-//
-
 import Foundation
 import GRDB
 import os
@@ -23,14 +15,6 @@ final class ExportManager {
 
     // MARK: - Export Methods
 
-    /// Exports captured traffic data to the specified location and format.
-    /// - Parameters:
-    ///   - url: Destination URL for the export
-    ///   - format: Export format (SQLite, JSON, or HAR)
-    ///   - includeHeaders: Whether to include request/response headers
-    ///   - includeBodies: Whether to include request/response bodies
-    ///   - includeFiltered: Whether to include filtered requests
-    /// - Throws: ExportError if the export fails
     func export(
         to url: URL,
         format: ExportFormat,
@@ -60,18 +44,12 @@ final class ExportManager {
 
     // MARK: - SQLite Export
 
-    /// Exports the database by copying the SQLite file.
-    /// Checkpoints WAL to ensure all data is flushed before copying.
-    /// - Parameter url: Destination URL for the database copy
-    /// - Throws: ExportError if the copy fails
     private func exportSQLite(to url: URL) throws {
         guard let sourcePath = DatabaseManager.shared.path,
               let db = DatabaseManager.shared.database else {
             throw ExportError.databaseNotAvailable
         }
 
-        // Checkpoint WAL to flush all pending writes to main database file
-        // This ensures a complete export with no data left in WAL
         try db.write { db in
             try db.execute(sql: "PRAGMA wal_checkpoint(TRUNCATE)")
         }
@@ -79,12 +57,10 @@ final class ExportManager {
         let fileManager = FileManager.default
         let sourceURL = URL(fileURLWithPath: sourcePath)
 
-        // Remove existing file if present
         if fileManager.fileExists(atPath: url.path) {
             try fileManager.removeItem(at: url)
         }
 
-        // Copy database file (now contains all data, no WAL needed)
         try fileManager.copyItem(at: sourceURL, to: url)
 
         logger.info("SQLite exported to: \(url.path)")
@@ -92,13 +68,6 @@ final class ExportManager {
 
     // MARK: - JSON Export
 
-    /// Exports captures as a JSON array.
-    /// - Parameters:
-    ///   - url: Destination URL for the JSON file
-    ///   - includeHeaders: Whether to include headers
-    ///   - includeBodies: Whether to include bodies
-    ///   - includeFiltered: Whether to include filtered requests
-    /// - Throws: ExportError if the export fails
     private func exportJSON(
         to url: URL,
         includeHeaders: Bool,
@@ -195,13 +164,6 @@ final class ExportManager {
 
     // MARK: - HAR Export
 
-    /// Exports captures in HAR (HTTP Archive) format.
-    /// - Parameters:
-    ///   - url: Destination URL for the HAR file
-    ///   - includeHeaders: Whether to include headers
-    ///   - includeBodies: Whether to include bodies
-    ///   - includeFiltered: Whether to include filtered requests
-    /// - Throws: ExportError if the export fails
     private func exportHAR(
         to url: URL,
         includeHeaders: Bool,
@@ -313,8 +275,7 @@ final class ExportManager {
             throw ExportError.databaseNotAvailable
         }
 
-        // includeFiltered is kept for API stability but no longer branches: the was_filtered
-        // column was removed in v3 and filtered traffic is never persisted (nothing to exclude).
+        // includeFiltered no longer branches: filtered traffic is never persisted, so nothing to exclude.
         return try db.read { db in
             try Capture
                 .order(Column("timestamp").desc)

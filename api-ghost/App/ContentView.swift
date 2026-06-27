@@ -1,10 +1,3 @@
-//
-//  ContentView.swift
-//  api-ghost
-//
-//  Temporary placeholder view - will be replaced by MainWindowView
-//
-
 import SwiftUI
 
 struct ContentView: View {

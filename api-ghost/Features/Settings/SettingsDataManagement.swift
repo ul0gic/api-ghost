@@ -1,10 +1,3 @@
-//
-//  SettingsDataManagement.swift
-//  APIGhost
-//
-//  Data Management settings tab for database stats, export, and wipe operations.
-//
-
 import SwiftUI
 import UniformTypeIdentifiers
 import os

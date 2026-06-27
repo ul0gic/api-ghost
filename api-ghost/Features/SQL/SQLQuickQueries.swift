@@ -1,10 +1,3 @@
-//
-//  SQLQuickQueries.swift
-//  APIGhost
-//
-//  Quick query types and time range filters for the SQL Explorer.
-//
-
 import Foundation
 
 // MARK: - Quick Query Types

@@ -1,61 +1,39 @@
-//
-//  RealtimeMessage.swift
-//  api-ghost
-//
-//  Created for APIGhost project
-//  Represents an individual message within a WebSocket or SSE connection.
-//
-
 import Foundation
 import GRDB
 
-/// Direction of a message in a real-time connection.
 enum MessageDirection: String, Codable, Sendable {
     case send
     case receive
 }
 
-/// Type of message data.
 enum MessageDataType: String, Codable, Sendable {
     case text
     case binary
 }
 
-/// Represents a single message within a WebSocket or SSE connection.
 struct RealtimeMessage: Codable, Sendable {
     // MARK: - Properties
 
-    /// Auto-incremented database primary key
     var id: Int64?
 
-    /// Reference to parent connection
     let connectionId: String
 
-    /// Session identifier for quick filtering
     var sessionId: String?
 
-    /// Message direction (send/receive)
     let direction: MessageDirection
 
-    /// Event type (message, open, close, error, or custom SSE event)
     let eventType: String
 
-    /// Data type (text or binary)
     let dataType: MessageDataType
 
-    /// Message content (text or base64-encoded binary)
     var data: Data?
 
-    /// Size of data in bytes
     var dataSize: Int
 
-    /// SSE lastEventId (if applicable)
     var lastEventId: String?
 
-    /// Timestamp when message was captured
     let timestamp: Date
 
-    /// Sequence number within the connection
     var sequenceNum: Int
 
     // MARK: - Initialization
@@ -86,7 +64,6 @@ struct RealtimeMessage: Codable, Sendable {
         self.sequenceNum = sequenceNum
     }
 
-    /// Creates a message from string data
     static func fromText(
         connectionId: String,
         sessionId: String?,
@@ -110,7 +87,6 @@ struct RealtimeMessage: Codable, Sendable {
         )
     }
 
-    /// Creates a message from binary data (base64 encoded string from JS)
     static func fromBinary(
         connectionId: String,
         sessionId: String?,
@@ -137,10 +113,8 @@ struct RealtimeMessage: Codable, Sendable {
 // MARK: - GRDB Protocols
 
 extension RealtimeMessage: FetchableRecord, PersistableRecord {
-    /// Database table name
     static let databaseTableName = "realtime_messages"
 
-    /// Column to row key mapping
     enum Columns {
         static let id = Column(CodingKeys.id)
         static let connectionId = Column(CodingKeys.connectionId)
@@ -155,7 +129,6 @@ extension RealtimeMessage: FetchableRecord, PersistableRecord {
         static let sequenceNum = Column(CodingKeys.sequenceNum)
     }
 
-    /// Custom column names to match database schema (snake_case)
     enum CodingKeys: String, CodingKey {
         case id
         case connectionId = "connection_id"
@@ -174,19 +147,16 @@ extension RealtimeMessage: FetchableRecord, PersistableRecord {
 // MARK: - Identifiable
 
 extension RealtimeMessage: Identifiable {
-    // id property is already defined
 }
 
 // MARK: - Computed Properties
 
 extension RealtimeMessage {
-    /// Returns the data as a string (for text messages)
     var dataString: String? {
         guard let data = data else { return nil }
         return String(data: data, encoding: .utf8)
     }
 
-    /// Returns a truncated preview of the data
     var dataPreview: String {
         guard let str = dataString else {
             if dataType == .binary {
@@ -201,12 +171,10 @@ extension RealtimeMessage {
         return str
     }
 
-    /// Returns whether this is a control message (open, close, error)
     var isControlMessage: Bool {
         ["open", "close", "error", "connecting", "closing"].contains(eventType)
     }
 
-    /// Returns a human-readable direction string
     var directionDisplayName: String {
         switch direction {
         case .send:
@@ -216,7 +184,6 @@ extension RealtimeMessage {
         }
     }
 
-    /// Returns the direction arrow symbol
     var directionSymbol: String {
         switch direction {
         case .send:

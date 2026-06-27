@@ -1,10 +1,3 @@
-//
-//  TrafficListView.swift
-//  api-ghost
-//
-//  Traffic list view displaying captured requests
-//
-
 import SwiftUI
 
 // MARK: - Traffic List View
@@ -19,13 +12,11 @@ struct TrafficListView: View {
             EmptyTrafficView()
         } else {
             VStack(spacing: 0) {
-                // Header row
                 TrafficListHeader()
 
                 Divider()
                     .background(Color.ghostBorder)
 
-                // Scrollable list
                 ScrollViewReader { _ in
                     List(captures, id: \.uuid, selection: Binding(
                         get: { selectedCapture?.uuid },
@@ -118,41 +109,34 @@ struct TrafficListRow: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            // Index
             Text("\(index)")
                 .font(.system(size: 11, design: .monospaced))
                 .foregroundColor(.ghostTextMuted)
                 .frame(width: 40, alignment: .trailing)
 
-            // Method
             MethodBadge(method: capture.method)
                 .frame(width: 70, alignment: .leading)
 
-            // Domain
             Text(capture.host)
                 .font(.system(size: 12, design: .monospaced))
                 .foregroundColor(.ghostTextPrimary)
                 .lineLimit(1)
                 .frame(width: 150, alignment: .leading)
 
-            // Path
             Text(capture.path)
                 .font(.system(size: 12, design: .monospaced))
                 .foregroundColor(.ghostTextSecondary)
                 .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            // Status
             StatusBadge(statusCode: capture.statusCode)
                 .frame(width: 60, alignment: .center)
 
-            // Size
             Text(formatSize(capture.responseBodySize))
                 .font(.system(size: 11, design: .monospaced))
                 .foregroundColor(.ghostTextMuted)
                 .frame(width: 70, alignment: .trailing)
 
-            // Time
             Text(formatTime(capture.durationMs))
                 .font(.system(size: 11, design: .monospaced))
                 .foregroundColor(.ghostTextMuted)

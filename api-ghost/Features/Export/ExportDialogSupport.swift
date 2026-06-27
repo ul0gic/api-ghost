@@ -1,10 +1,3 @@
-//
-//  ExportDialogSupport.swift
-//  APIGhost
-//
-//  Supporting views and types for the export dialog: format row, checkbox, stat item, button styles, document.
-//
-
 import SwiftUI
 import UniformTypeIdentifiers
 import os

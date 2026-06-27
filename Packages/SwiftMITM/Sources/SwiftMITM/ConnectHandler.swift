@@ -1,10 +1,6 @@
 import NIOCore
 import NIOHTTP1
 
-/// CONNECT tunnel entry, re-implemented from Apple's connect-proxy example. Parses `CONNECT host:port`,
-/// replies `200 Connection Established`, removes itself, and hands the validated authority to a
-/// callback that swaps TLS termination in at the seam. Rejects malformed authorities (the first
-/// untrusted input the proxy sees).
 final class ConnectHandler: ChannelInboundHandler, RemovableChannelHandler {
     typealias InboundIn = HTTPServerRequestPart
     typealias OutboundOut = HTTPServerResponsePart

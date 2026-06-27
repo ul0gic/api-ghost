@@ -1,10 +1,3 @@
-//
-//  SQLResultsSheets.swift
-//  APIGhost
-//
-//  Sheet views for SQL results: row detail, empty states, and executing view.
-//
-
 import SwiftUI
 import GRDB
 

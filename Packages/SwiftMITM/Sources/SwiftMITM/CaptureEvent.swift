@@ -1,9 +1,5 @@
 import Foundation
 
-/// The engine's only outbound contract: NIO-free value types so the app side never links NIO.
-/// Bodies stream as bounded chunks — the sink must not accumulate, or it reintroduces the
-/// unbounded-buffering the proxy itself avoids.
-
 public enum HTTPProtocolVersion: String, Sendable {
     case http11 = "HTTP/1.1"
     case http2 = "HTTP/2"
