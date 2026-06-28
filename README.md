@@ -23,7 +23,7 @@ APIGhost is a **focused, passive** API reconnaissance tool. You browse a site in
 
 - **Passive only.** It captures and analyzes. It never probes, fuzzes, or attacks.
 - **No AI in the app.** APIGhost captures and exports. The analysis happens outside, in an LLM you trust.
-- **The export is the product.** A clean, complete SQLite is the deliverable. Everything else serves producing one.
+- **The export is the product.** A clean, complete SQLite is the deliverable. Everything else exists to produce one.
 - **Isolated and session-based.** Only the embedded browser's traffic is captured, one ephemeral session at a time.
 
 <div align="center">
@@ -80,11 +80,11 @@ flowchart TB
 
 **Schemaless SQLite.** Captures are stored raw. Request, response, headers, bodies, timing, and metadata all live in one flat, queryable table. There's no rigid ORM shape to fight, and the single `.sqlite` file is the export, so handing it to an LLM (or `sqlite3`) needs zero conversion.
 
-**Dual interception.** JS interception needs zero setup and no certificate. Network-proxy mode adds TLS MITM — a local `SwiftMITM` engine over SwiftNIO, routed through `WKWebsiteDataStore.proxyConfigurations` — and captures what page-context JS can't see: service-worker traffic, browser-managed headers, and raw bytes on the wire.
+**Dual interception.** JS interception needs zero setup and no certificate. Network-proxy mode adds TLS MITM through a local `SwiftMITM` engine over SwiftNIO, routed via `WKWebsiteDataStore.proxyConfigurations`. It captures what page-context JS can't see: service-worker traffic, browser-managed headers, and raw bytes on the wire.
 
 ## Why: security use cases
 
-APIGhost shines anywhere you need to know *exactly* what an app talks to. The export feeds an LLM that turns hundreds of captured calls into a documented API surface.
+APIGhost is for any time you need to know *exactly* what an app talks to. The export feeds an LLM that turns hundreds of captured calls into a documented API surface.
 
 **Offensive / research**
 - Reverse-engineer undocumented internal and partner APIs.
