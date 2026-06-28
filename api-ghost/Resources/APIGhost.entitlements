@@ -5,11 +5,5 @@
     <!-- TLS-MITM proxy needs raw network interception and system keychain trust installation; the App Sandbox grants neither. -->
     <key>com.apple.security.app-sandbox</key>
     <false/>
-
-    <!-- Stable keychain identity for the network-mode CA private key (PEM) and root certificate under hardened runtime. -->
-    <key>keychain-access-groups</key>
-    <array>
-        <string>$(AppIdentifierPrefix)corelift.api-ghost</string>
-    </array>
 </dict>
 </plist>

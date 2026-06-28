@@ -8,9 +8,6 @@ nonisolated struct KeychainManager: Sendable {
 
     static let serviceIdentifier = "corelift.api-ghost"
 
-    /// Must match the keychain-access-groups entitlement value ($(AppIdentifierPrefix)corelift.api-ghost).
-    static let accessGroup = "corelift.api-ghost"
-
     static let caPrivateKeyPEMKey = "ca.private-key.pem"
     static let caRootCertificateKey = "ca.root-certificate"
 
