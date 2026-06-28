@@ -273,9 +273,13 @@ struct DataManagementSettingsTab: View {
     private func performExport() {
         isExporting = true
         exportError = nil
+        let format = selectedFormat
+        let headers = includeHeaders
+        let bodies = includeBodies
+        let filtered = includeFiltered
         let savePanel = NSSavePanel()
-        savePanel.allowedContentTypes = [selectedFormat == .sqlite ? .database : .json]
-        savePanel.nameFieldStringValue = "\(exportFilename).\(selectedFormat.fileExtension)"
+        savePanel.allowedContentTypes = [format == .sqlite ? .database : .json]
+        savePanel.nameFieldStringValue = "\(exportFilename).\(format.fileExtension)"
         savePanel.canCreateDirectories = true
         savePanel.title = "Export Captured Data"
         savePanel.begin { response in
@@ -284,10 +288,10 @@ struct DataManagementSettingsTab: View {
                     do {
                         try ExportManager.shared.export(
                             to: url,
-                            format: selectedFormat,
-                            includeHeaders: includeHeaders,
-                            includeBodies: includeBodies,
-                            includeFiltered: includeFiltered
+                            format: format,
+                            includeHeaders: headers,
+                            includeBodies: bodies,
+                            includeFiltered: filtered
                         )
                         DispatchQueue.main.async { isExporting = false; showExportSuccess = true }
                     } catch {

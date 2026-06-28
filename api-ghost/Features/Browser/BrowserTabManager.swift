@@ -39,7 +39,7 @@ final class BrowserTabManager {
         }
     }
 
-    deinit {
+    isolated deinit {
         if let fallbackObserver {
             NotificationCenter.default.removeObserver(fallbackObserver)
         }

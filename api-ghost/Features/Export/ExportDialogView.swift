@@ -244,18 +244,26 @@ struct ExportDialogView: View {
     private func doExport(to url: URL) {
         isExporting = true
         exportError = nil
-        DispatchQueue.global(qos: .userInitiated).async {
+        let format = options.format
+        let includeHeaders = options.includeHeaders
+        let includeBodies = options.includeBodies
+        let includeFiltered = options.includeFiltered
+        Task {
             do {
-                try ExportManager.shared.export(
-                    to: url,
-                    format: options.format,
-                    includeHeaders: options.includeHeaders,
-                    includeBodies: options.includeBodies,
-                    includeFiltered: options.includeFiltered
-                )
-                DispatchQueue.main.async { isExporting = false; dismiss() }
+                try await Task.detached(priority: .userInitiated) {
+                    try ExportManager.shared.export(
+                        to: url,
+                        format: format,
+                        includeHeaders: includeHeaders,
+                        includeBodies: includeBodies,
+                        includeFiltered: includeFiltered
+                    )
+                }.value
+                isExporting = false
+                dismiss()
             } catch {
-                DispatchQueue.main.async { isExporting = false; exportError = error.localizedDescription }
+                isExporting = false
+                exportError = error.localizedDescription
             }
         }
     }

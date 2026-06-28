@@ -34,11 +34,6 @@ final class NoiseFilter: @unchecked Sendable {
     private var state = State()
     private var changeObserver: (any NSObjectProtocol)?
 
-    // Persistence contract owned by the UI (FilterCategoryStore); Core consumes it read-only, keyed by string.
-    private static let categoryOverridesKey = "filter.categoryOverrides"
-    private static let disabledRuleIDsKey = "filter.disabledRuleIDs"
-    private static let filterRulesDidChangeName = Notification.Name("filterRulesDidChange")
-
     // MARK: - Initialization
 
     private init() {
@@ -50,11 +45,11 @@ final class NoiseFilter: @unchecked Sendable {
         state.rebuildEngine()
 
         changeObserver = NotificationCenter.default.addObserver(
-            forName: Self.filterRulesDidChangeName,
+            forName: FilterPersistence.rulesDidChange,
             object: nil,
             queue: nil
         ) { [weak self] _ in
-            self?.reloadFilterState()
+            Task { @MainActor in self?.reloadFilterState() }
         }
     }
 
@@ -258,10 +253,10 @@ private extension NoiseFilter {
     }
 
     static func loadCategoryOverrides() -> [String: Bool] {
-        (UserDefaults.standard.dictionary(forKey: categoryOverridesKey) as? [String: Bool]) ?? [:]
+        (UserDefaults.standard.dictionary(forKey: FilterPersistence.categoryOverridesKey) as? [String: Bool]) ?? [:]
     }
 
     static func loadDisabledRuleIDs() -> Set<String> {
-        Set(UserDefaults.standard.stringArray(forKey: disabledRuleIDsKey) ?? [])
+        Set(UserDefaults.standard.stringArray(forKey: FilterPersistence.disabledRuleIDsKey) ?? [])
     }
 }

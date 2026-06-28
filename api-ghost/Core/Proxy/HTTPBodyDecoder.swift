@@ -3,21 +3,28 @@ import Foundation
 
 /// Decodes Content-Encoding for captured proxy bodies. Fails safe — any malformed/unsupported stream returns the raw bytes.
 /// brotli (`br`) is unsupported (no Compression-framework codec / dependency) and stored raw — see ENH-001.
-enum HTTPBodyDecoder {
-    static func decode(_ body: Data, contentEncoding: String?, truncated: Bool) -> Data {
+nonisolated enum HTTPBodyDecoder {
+    /// `maxDecodedSize` bounds the inflated OUTPUT (decompression-bomb guard, SEC-006); at the cap, decoding stops and returns bounded bytes.
+    nonisolated static func decode(
+        _ body: Data,
+        contentEncoding: String?,
+        truncated: Bool,
+        maxDecodedSize: Int
+    ) -> Data {
         guard !body.isEmpty, let encoding = normalized(contentEncoding) else { return body }
+        let limit = max(maxDecodedSize, 1)
         switch encoding {
         case "gzip", "x-gzip":
             guard let deflate = stripGzipHeader(body) else { return body }
-            return inflate(deflate, truncated: truncated) ?? body
+            return inflate(deflate, truncated: truncated, limit: limit) ?? body
         case "deflate":
-            return inflateDeflate(body, truncated: truncated) ?? body
+            return inflateDeflate(body, truncated: truncated, limit: limit) ?? body
         default:
             return body
         }
     }
 
-    private static func normalized(_ contentEncoding: String?) -> String? {
+    nonisolated private static func normalized(_ contentEncoding: String?) -> String? {
         guard let value = contentEncoding?.trimmingCharacters(in: .whitespaces).lowercased(), !value.isEmpty else {
             return nil
         }
@@ -29,22 +36,22 @@ enum HTTPBodyDecoder {
 
 private extension HTTPBodyDecoder {
     /// `Content-Encoding: deflate` is usually zlib-wrapped (RFC 1950); COMPRESSION_ZLIB needs raw DEFLATE (RFC 1951).
-    static func inflateDeflate(_ body: Data, truncated: Bool) -> Data? {
+    nonisolated static func inflateDeflate(_ body: Data, truncated: Bool, limit: Int) -> Data? {
         if looksZlibWrapped(body), let stripped = stripZlibHeader(body),
-           let inflated = inflate(stripped, truncated: truncated) {
+           let inflated = inflate(stripped, truncated: truncated, limit: limit) {
             return inflated
         }
-        return inflate(body, truncated: truncated)
+        return inflate(body, truncated: truncated, limit: limit)
     }
 
-    static func looksZlibWrapped(_ data: Data) -> Bool {
+    nonisolated static func looksZlibWrapped(_ data: Data) -> Bool {
         guard data.count >= 2 else { return false }
         let cmf = Int(data[data.startIndex])
         let flg = Int(data[data.startIndex + 1])
         return (cmf & 0x0F) == 0x08 && (cmf << 8 | flg).isMultiple(of: 31)
     }
 
-    static func inflate(_ source: Data, truncated: Bool) -> Data? {
+    nonisolated static func inflate(_ source: Data, truncated: Bool, limit: Int) -> Data? {
         guard !source.isEmpty else { return nil }
         let bufferSize = 64 * 1024
         let destination = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferSize)
@@ -67,33 +74,77 @@ private extension HTTPBodyDecoder {
             guard let base = raw.bindMemory(to: UInt8.self).baseAddress else { return nil }
             stream.src_ptr = base
             stream.src_size = source.count
+            return drain(
+                &stream,
+                destination: destination,
+                bufferSize: bufferSize,
+                flags: flags,
+                truncated: truncated,
+                limit: limit
+            )
+        }
+    }
 
-            var output = Data()
-            while true {
-                stream.dst_ptr = destination
-                stream.dst_size = bufferSize
-                let status = compression_stream_process(&stream, flags)
-                let produced = bufferSize - stream.dst_size
-                if produced > 0 { output.append(destination, count: produced) }
+    nonisolated static func drain(
+        _ stream: inout compression_stream,
+        destination: UnsafeMutablePointer<UInt8>,
+        bufferSize: Int,
+        flags: Int32,
+        truncated: Bool,
+        limit: Int
+    ) -> Data? {
+        var output = Data()
+        while true {
+            stream.dst_ptr = destination
+            stream.dst_size = bufferSize
+            let srcBefore = stream.src_size
+            let status = compression_stream_process(&stream, flags)
+            let produced = bufferSize - stream.dst_size
+            if produced > 0 { output.append(destination, count: produced) }
 
-                switch status {
-                case COMPRESSION_STATUS_END:
-                    return output
-                case COMPRESSION_STATUS_OK:
-                    // Ran out of input without END: complete only if truncated, else a misparse — fail to the caller's fallback.
-                    if produced == 0, stream.src_size == 0 { return truncated ? output : nil }
-                default:
-                    return output.isEmpty ? nil : output
+            // Decompression-bomb guard: never accumulate past the decoded ceiling (SEC-006).
+            if output.count >= limit { return Data(output.prefix(limit)) }
+
+            switch status {
+            case COMPRESSION_STATUS_END:
+                return output
+            case COMPRESSION_STATUS_OK:
+                // Outer nil = keep draining; inner optional is the value to return.
+                if let outcome = okOutcome(
+                    produced: produced,
+                    srcSize: stream.src_size,
+                    srcBefore: srcBefore,
+                    output: output,
+                    truncated: truncated
+                ) {
+                    return outcome
                 }
+            default:
+                return output.isEmpty ? nil : output
             }
         }
+    }
+
+    nonisolated static func okOutcome(
+        produced: Int,
+        srcSize: Int,
+        srcBefore: Int,
+        output: Data,
+        truncated: Bool
+    ) -> Data?? {
+        guard produced == 0 else { return nil }
+        // Input fully consumed without END is only valid for a truncated stream; otherwise a misparse.
+        if srcSize == 0 { return .some(truncated ? output : nil) }
+        // No input consumed and no output: the codec is stuck — bail rather than spin.
+        if srcSize == srcBefore { return .some(output.isEmpty ? nil : output) }
+        return nil
     }
 }
 
 // MARK: - Header framing
 
 private extension HTTPBodyDecoder {
-    static func stripGzipHeader(_ data: Data) -> Data? {
+    nonisolated static func stripGzipHeader(_ data: Data) -> Data? {
         let bytes = [UInt8](data)
         guard bytes.count > 18, bytes[0] == 0x1F, bytes[1] == 0x8B, bytes[2] == 0x08 else { return nil }
         let flags = bytes[3]
@@ -109,12 +160,12 @@ private extension HTTPBodyDecoder {
         return data.subdata(in: index..<data.count)
     }
 
-    static func stripZlibHeader(_ data: Data) -> Data? {
+    nonisolated static func stripZlibHeader(_ data: Data) -> Data? {
         guard data.count > 2 else { return nil }
         return data.subdata(in: 2..<data.count)
     }
 
-    static func skipCString(_ bytes: [UInt8], from start: Int) -> Int {
+    nonisolated static func skipCString(_ bytes: [UInt8], from start: Int) -> Int {
         var index = start
         while index < bytes.count, bytes[index] != 0 { index += 1 }
         return index + 1

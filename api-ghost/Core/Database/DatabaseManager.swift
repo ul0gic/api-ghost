@@ -2,9 +2,9 @@ import Foundation
 import GRDB
 import os
 
-private let logger = Logger(subsystem: "corelift.api-ghost", category: "DatabaseManager")
+nonisolated private let logger = Logger(subsystem: "corelift.api-ghost", category: "DatabaseManager")
 
-final class DatabaseManager: Sendable {
+nonisolated final class DatabaseManager: Sendable {
     // MARK: - Singleton
 
     static let shared = DatabaseManager()

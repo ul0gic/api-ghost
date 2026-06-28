@@ -38,6 +38,7 @@ final class ProxyController {
             server = nil
             boundPort = nil
             isRunning = false
+            sink.reset()
         }
         guard let server else { return }
         do {

@@ -7,9 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AAB100000000000000000003 /* SwiftMITM in Frameworks */ = {isa = PBXBuildFile; productRef = AAB100000000000000000002 /* SwiftMITM */; };
 		C02D8E32BCD4D0628BA6F769 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 09014FD7F67FEF2143CB1C46 /* GRDB */; };
 		EF9EAE922EF2104B000E566D /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = EF9EAE912EF2104B000E566D /* GRDB */; };
-		AAB100000000000000000003 /* SwiftMITM in Frameworks */ = {isa = PBXBuildFile; productRef = AAB100000000000000000002 /* SwiftMITM */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -254,6 +254,7 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
 				SWIFT_VERSION = 5.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/APIGhost.app/Contents/MacOS/APIGhost";
@@ -416,6 +417,7 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
@@ -454,6 +456,7 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
@@ -475,6 +478,7 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
 				SWIFT_VERSION = 5.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/APIGhost.app/Contents/MacOS/APIGhost";
@@ -516,7 +520,7 @@
 /* Begin XCLocalSwiftPackageReference section */
 		AAB100000000000000000001 /* XCLocalSwiftPackageReference "Packages/SwiftMITM" */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = "Packages/SwiftMITM";
+			relativePath = Packages/SwiftMITM;
 		};
 /* End XCLocalSwiftPackageReference section */
 
@@ -537,14 +541,14 @@
 			package = EF9EAE932EF2104B000E566D /* XCRemoteSwiftPackageReference "GRDB.swift" */;
 			productName = GRDB;
 		};
+		AAB100000000000000000002 /* SwiftMITM */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SwiftMITM;
+		};
 		EF9EAE912EF2104B000E566D /* GRDB */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = EF9EAE932EF2104B000E566D /* XCRemoteSwiftPackageReference "GRDB.swift" */;
 			productName = GRDB;
-		};
-		AAB100000000000000000002 /* SwiftMITM */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = SwiftMITM;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

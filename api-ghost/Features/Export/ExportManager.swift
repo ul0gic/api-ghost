@@ -2,11 +2,11 @@ import Foundation
 import GRDB
 import os
 
-private let logger = Logger(subsystem: "corelift.api-ghost", category: "ExportManager")
+nonisolated private let logger = Logger(subsystem: "corelift.api-ghost", category: "ExportManager")
 
 // MARK: - Export Manager
 
-final class ExportManager {
+nonisolated final class ExportManager: Sendable {
     // MARK: - Singleton
 
     static let shared = ExportManager()

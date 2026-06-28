@@ -1,7 +1,7 @@
 import Foundation
 
 /// Detection contract for network-proxy MITM breakage (cert pinning / TLS rejection) and the fallback signal to JS mode.
-enum ProxyFallback {
+nonisolated enum ProxyFallback {
     static let mitmHandshakeFailed = Notification.Name("corelift.api-ghost.proxyMITMHandshakeFailed")
     static let hostKey = "host"
 

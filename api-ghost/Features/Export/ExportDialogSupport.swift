@@ -155,5 +155,5 @@ struct ExportDocument: FileDocument {
 // MARK: - UTType Extension
 
 extension UTType {
-    static let database = UTType(filenameExtension: "db") ?? .data
+    nonisolated static let database = UTType(filenameExtension: "db") ?? .data
 }

@@ -20,26 +20,27 @@ final class BrowserCoordinator: NSObject, WKNavigationDelegate, WKUIDelegate, NS
         self.viewModel = viewModel
     }
 
-    deinit {
+    isolated deinit {
         cleanupAllPopups()
     }
 
     // MARK: - Popup Cleanup
 
-    private func cleanupPopupWebView(_ webView: WKWebView, deferred: Bool = false) {
-        let cleanup = { [weak webView] in
-            guard let webView = webView else { return }
-            webView.stopLoading()
-            webView.loadHTMLString("", baseURL: nil)
-            webView.navigationDelegate = nil
-            webView.uiDelegate = nil
-            logger.info("Popup webview cleanup completed")
-        }
+    private func tearDownWebView(_ webView: WKWebView?) {
+        guard let webView else { return }
+        webView.stopLoading()
+        webView.loadHTMLString("", baseURL: nil)
+        webView.navigationDelegate = nil
+        webView.uiDelegate = nil
+        logger.info("Popup webview cleanup completed")
+    }
 
+    private func cleanupPopupWebView(_ webView: WKWebView, deferred: Bool = false) {
+        // WebKit-triggered teardown must not reenter the live WebKit callback; defer it to the next main-actor turn.
         if deferred {
-            DispatchQueue.main.async(execute: cleanup)
+            Task { @MainActor [weak self, weak webView] in self?.tearDownWebView(webView) }
         } else {
-            cleanup()
+            tearDownWebView(webView)
         }
     }
 

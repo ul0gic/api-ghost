@@ -2,7 +2,7 @@ import Foundation
 import GRDB
 
 struct Migrations {
-    static func registerMigrations(_ migrator: inout DatabaseMigrator) {
+    nonisolated static func registerMigrations(_ migrator: inout DatabaseMigrator) {
         registerV1Migration(&migrator)
         registerV2Migration(&migrator)
         registerV3Migration(&migrator)

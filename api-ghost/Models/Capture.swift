@@ -278,7 +278,7 @@ extension Capture: nonisolated Identifiable {
 // MARK: - Computed Properties
 
 extension Capture {
-    var fullURL: String {
+    nonisolated var fullURL: String {
         var url = "\(scheme)://\(host)"
         if let port = port {
             url += ":\(port)"

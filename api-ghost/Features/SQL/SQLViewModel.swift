@@ -151,12 +151,12 @@ final class SQLViewModel {
         startTime: CFAbsoluteTime
     ) async throws -> SQLQueryResult {
         typealias ResultContinuation = CheckedContinuation<SQLQueryResult, Error>
+        let finalQuery = applyQueryLimit(to: queryToExecute)
         return try await withCheckedThrowingContinuation { (continuation: ResultContinuation) in
             DispatchQueue.global(qos: .userInitiated).async {
                 do {
                     let result = try db.read { db -> SQLQueryResult in
-                        let finalQuery = self.applyQueryLimit(to: queryToExecute)
-                        return try self.executeAndCollect(
+                        try self.executeAndCollect(
                             finalQuery, on: db, startTime: startTime, originalQuery: queryToExecute
                         )
                     }
@@ -176,7 +176,7 @@ final class SQLViewModel {
         return query
     }
 
-    private func executeAndCollect(
+    nonisolated private func executeAndCollect(
         _ finalQuery: String,
         on db: GRDB.Database,
         startTime: CFAbsoluteTime,
