@@ -51,6 +51,10 @@ struct CertificateAuthoritySection: View {
                 trustWarningBanner
             }
 
+            if model.status == .generatedNotTrusted {
+                reTrustHint
+            }
+
             if let message = model.errorMessage {
                 Label(message, systemImage: "xmark.octagon.fill")
                     .font(.system(size: 12))
@@ -107,6 +111,29 @@ struct CertificateAuthoritySection: View {
         .overlay(
             RoundedRectangle(cornerRadius: 10)
                 .stroke(Color.ghostWarning.opacity(0.4), lineWidth: 1)
+        )
+        .cornerRadius(10)
+    }
+
+    private var reTrustHint: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "info.circle.fill")
+                .font(.system(size: 16))
+                .foregroundColor(.ghostAccent)
+            Text("""
+            Trust was removed when you left Network Proxy mode. Click Install & Trust to resume intercepting \
+            TLS traffic — macOS will prompt for your password.
+            """)
+                .font(.system(size: 12))
+                .foregroundColor(.ghostTextSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+        }
+        .padding(16)
+        .background(Color.ghostAccent.opacity(0.1))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(Color.ghostAccent.opacity(0.4), lineWidth: 1)
         )
         .cornerRadius(10)
     }
