@@ -1,0 +1,53 @@
+name: Semgrep
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 7 * * 1' # weekly
+
+permissions:
+  contents: read
+
+concurrency:
+  group: semgrep-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  semgrep:
+    name: Semgrep (source SAST)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      security-events: write # upload SARIF to code scanning
+      contents: read
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@f808768d1510423e83855289c910610ca9b43176 # v2.17.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      # pipx is preinstalled on GitHub Ubuntu runners; floats to the latest semgrep
+      # (community rulesets only — no token/account needed). Metrics disabled.
+      - name: Install semgrep
+        run: pipx install semgrep
+
+      # Advisory: findings land in the Security tab via SARIF; never fail the build.
+      - name: Scan
+        run: >-
+          semgrep scan
+          --config p/swift --config p/owasp-top-ten --config p/secrets
+          --sarif --output semgrep.sarif --metrics off || true
+
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@dd903d2e4f5405488e5ef1422510ee31c8b32357 # v3.36.2
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep

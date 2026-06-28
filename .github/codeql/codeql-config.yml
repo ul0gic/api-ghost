@@ -1,9 +1,0 @@
-name: APIGhost CodeQL config
-
-# Analyze only first-party source. The traced xcodebuild compiles SwiftPM
-# dependencies (GRDB, the SwiftNIO stack) into .spm; their alerts are noise.
-paths-ignore:
-  - .spm
-  - "**/.build"
-  - build
-  - DerivedData
