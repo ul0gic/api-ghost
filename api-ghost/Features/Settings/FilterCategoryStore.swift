@@ -1,8 +1,5 @@
 import SwiftUI
 
-// Persistence contract consumed by Core NoiseFilter (build-plan 2.1.3):
-// `filter.categoryOverrides` ([String:Bool], categoryID→enabled; absent = isEnabledByDefault)
-// and `filter.disabledRuleIDs` ([String]) define the active prebuilt rule set.
 @Observable
 final class FilterCategoryStore {
     private(set) var categories: [FilterCategory]
@@ -12,15 +9,11 @@ final class FilterCategoryStore {
 
     private let defaults = UserDefaults.standard
 
-    private enum Keys {
-        static let categoryOverrides = "filter.categoryOverrides"
-        static let disabledRuleIDs = "filter.disabledRuleIDs"
-    }
-
     init() {
         categories = NoiseFilter.shared.categories
-        categoryOverrides = (defaults.dictionary(forKey: Keys.categoryOverrides) as? [String: Bool]) ?? [:]
-        disabledRuleIDs = Set(defaults.stringArray(forKey: Keys.disabledRuleIDs) ?? [])
+        categoryOverrides =
+            (defaults.dictionary(forKey: FilterPersistence.categoryOverridesKey) as? [String: Bool]) ?? [:]
+        disabledRuleIDs = Set(defaults.stringArray(forKey: FilterPersistence.disabledRuleIDsKey) ?? [])
     }
 
     // MARK: - Category state
@@ -73,12 +66,8 @@ final class FilterCategoryStore {
     // MARK: - Persistence
 
     private func persist() {
-        defaults.set(categoryOverrides, forKey: Keys.categoryOverrides)
-        defaults.set(Array(disabledRuleIDs), forKey: Keys.disabledRuleIDs)
-        NotificationCenter.default.post(name: .filterRulesDidChange, object: nil)
+        defaults.set(categoryOverrides, forKey: FilterPersistence.categoryOverridesKey)
+        defaults.set(Array(disabledRuleIDs), forKey: FilterPersistence.disabledRuleIDsKey)
+        NotificationCenter.default.post(name: FilterPersistence.rulesDidChange, object: nil)
     }
-}
-
-extension Notification.Name {
-    static let filterRulesDidChange = Notification.Name("filterRulesDidChange")
 }

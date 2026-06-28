@@ -10,11 +10,6 @@ struct FilterSettingsView: View {
 
     @State private var captureAllTraffic: Bool = false
 
-    @State private var blockImages: Bool = true
-    @State private var blockFonts: Bool = true
-    @State private var blockVideo: Bool = true
-    @State private var blockAudio: Bool = true
-
     @State private var selectedSizeLimit: ResponseSizeLimit = .tenMB
 
     @State private var showResetConfirmation: Bool = false
@@ -113,50 +108,26 @@ struct FilterSettingsView: View {
                 }
                 .backgroundStyle(Color.ghostSurface)
 
-                HStack(alignment: .top, spacing: 16) {
-                    GroupBox(label: SettingsSectionHeader(title: "Content Types", icon: "doc.text")) {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Block non-API content types.")
-                                .font(.system(size: 11))
-                                .foregroundColor(.ghostTextMuted)
+                GroupBox(label: SettingsSectionHeader(title: "Response Size Limit", icon: "arrow.up.arrow.down")) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Max response size to capture.")
+                            .font(.system(size: 11))
+                            .foregroundColor(.ghostTextMuted)
 
-                            HStack(spacing: 20) {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    ContentTypeToggle(label: "Images", icon: "photo", isOn: $blockImages)
-                                    ContentTypeToggle(label: "Fonts", icon: "textformat", isOn: $blockFonts)
-                                }
-
-                                VStack(alignment: .leading, spacing: 8) {
-                                    ContentTypeToggle(label: "Video", icon: "play.rectangle", isOn: $blockVideo)
-                                    ContentTypeToggle(label: "Audio", icon: "speaker.wave.2", isOn: $blockAudio)
-                                }
+                        Picker("Max Response Size", selection: $selectedSizeLimit) {
+                            ForEach(ResponseSizeLimit.allCases, id: \.self) { limit in
+                                Text(limit.displayName).tag(limit)
                             }
                         }
-                        .padding(12)
-                    }
-                    .backgroundStyle(Color.ghostSurface)
-
-                    GroupBox(label: SettingsSectionHeader(title: "Response Size Limit", icon: "arrow.up.arrow.down")) {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Max response size to capture.")
-                                .font(.system(size: 11))
-                                .foregroundColor(.ghostTextMuted)
-
-                            Picker("Max Response Size", selection: $selectedSizeLimit) {
-                                ForEach(ResponseSizeLimit.allCases, id: \.self) { limit in
-                                    Text(limit.displayName).tag(limit)
-                                }
-                            }
-                            .pickerStyle(.segmented)
-                            .onChange(of: selectedSizeLimit) { _, newValue in
-                                noiseFilter.maxResponseSize = newValue.bytes
-                                Preferences.shared.maxResponseSize = newValue.bytes
-                            }
+                        .pickerStyle(.segmented)
+                        .onChange(of: selectedSizeLimit) { _, newValue in
+                            noiseFilter.maxResponseSize = newValue.bytes
+                            Preferences.shared.maxResponseSize = newValue.bytes
                         }
-                        .padding(12)
                     }
-                    .backgroundStyle(Color.ghostSurface)
+                    .padding(12)
                 }
+                .backgroundStyle(Color.ghostSurface)
 
                 HStack {
                     Spacer()
@@ -227,10 +198,6 @@ struct FilterSettingsView: View {
         captureAllTraffic = false
         blockedDomains = []
         blockedPaths = []
-        blockImages = true
-        blockFonts = true
-        blockVideo = true
-        blockAudio = true
         selectedSizeLimit = .tenMB
         Preferences.shared.filteringEnabled = true
         saveSettings()
@@ -241,10 +208,6 @@ struct FilterSettingsView: View {
 
         blockedDomains = Preferences.shared.customBlockedDomains
         blockedPaths = Preferences.shared.customBlockedPaths
-        blockImages = Preferences.shared.blockImages
-        blockFonts = Preferences.shared.blockFonts
-        blockVideo = Preferences.shared.blockVideo
-        blockAudio = Preferences.shared.blockAudio
 
         let storedSize = Preferences.shared.maxResponseSize
         selectedSizeLimit = ResponseSizeLimit.allCases.first { $0.bytes == storedSize } ?? .tenMB
@@ -253,10 +216,6 @@ struct FilterSettingsView: View {
     private func saveSettings() {
         Preferences.shared.customBlockedDomains = blockedDomains
         Preferences.shared.customBlockedPaths = blockedPaths
-        Preferences.shared.blockImages = blockImages
-        Preferences.shared.blockFonts = blockFonts
-        Preferences.shared.blockVideo = blockVideo
-        Preferences.shared.blockAudio = blockAudio
         Preferences.shared.maxResponseSize = selectedSizeLimit.bytes
     }
 }
