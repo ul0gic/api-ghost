@@ -1,17 +1,16 @@
 name: SwiftMITM (package)
 
-# OPTIONAL / advisory. The Packages/SwiftMITM SwiftNIO engine builds standalone
-# and is NOT yet linked into the app, so it gets its own check that only runs
-# when the package itself changes. Keep this OUT of required status checks until
-# the package is wired into the app (Phase 4).
+# Advisory. The Packages/SwiftMITM SwiftNIO engine is linked into the app, but
+# this check runs its standalone `swift test` on package-only changes (the app
+# CI covers the integrated build).
 on:
   push:
-    branches: [v2]
+    branches: [main]
     paths:
       - 'Packages/SwiftMITM/**'
       - '.github/workflows/swiftmitm.yml'
   pull_request:
-    branches: [v2]
+    branches: [main]
     paths:
       - 'Packages/SwiftMITM/**'
       - '.github/workflows/swiftmitm.yml'
