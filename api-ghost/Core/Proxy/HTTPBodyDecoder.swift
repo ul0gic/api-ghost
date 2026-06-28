@@ -4,12 +4,12 @@ import Foundation
 /// Decodes Content-Encoding for captured proxy bodies. Fails safe — any malformed/unsupported stream returns the raw bytes.
 /// brotli (`br`) is unsupported (no Compression-framework codec / dependency) and stored raw — see ENH-001.
 nonisolated enum HTTPBodyDecoder {
-    /// `maxDecodedSize` bounds the inflated OUTPUT (decompression-bomb guard, SEC-006); at the cap, decoding stops and returns bounded bytes.
+    /// `maxDecodedSize` bounds the inflated OUTPUT (decompression-bomb guard, SEC-006); decoding stops at the cap.
     nonisolated static func decode(
         _ body: Data,
         contentEncoding: String?,
         truncated: Bool,
-        maxDecodedSize: Int
+        maxDecodedSize: Int = 10 * 1024 * 1024
     ) -> Data {
         guard !body.isEmpty, let encoding = normalized(contentEncoding) else { return body }
         let limit = max(maxDecodedSize, 1)

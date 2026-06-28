@@ -122,28 +122,3 @@ struct CaptureAllToggleView: View {
         captureAllTraffic ? Color.orange.opacity(0.1) : Color.ghostSurface
     }
 }
-
-// MARK: - Content Type Toggle
-
-struct ContentTypeToggle: View {
-    let label: String
-    let icon: String
-    @Binding var isOn: Bool
-
-    var body: some View {
-        Toggle(isOn: $isOn) {
-            HStack(spacing: 6) {
-                Image(systemName: icon)
-                    .font(.system(size: 12))
-                    .foregroundColor(.ghostTextMuted)
-                    .frame(width: 16)
-                Text(label)
-                    .font(.system(size: 12))
-                    .foregroundColor(.ghostTextSecondary)
-            }
-        }
-        .toggleStyle(.switch)
-        .controlSize(.small)
-        .tint(.ghostAccent)
-    }
-}

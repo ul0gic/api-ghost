@@ -19,10 +19,6 @@ final class Preferences {
         static let filteringEnabled = "filteringEnabled"
         static let customBlockedDomains = "customBlockedDomains"
         static let customBlockedPaths = "customBlockedPaths"
-        static let blockImages = "blockImages"
-        static let blockFonts = "blockFonts"
-        static let blockVideo = "blockVideo"
-        static let blockAudio = "blockAudio"
         static let maxResponseSize = "maxResponseSize"
 
         static let autoStartRecording = "autoStartRecording"
@@ -112,46 +108,6 @@ final class Preferences {
     var customBlockedPaths: [String] {
         get { defaults.stringArray(forKey: Keys.customBlockedPaths) ?? [] }
         set { defaults.set(newValue, forKey: Keys.customBlockedPaths) }
-    }
-
-    var blockImages: Bool {
-        get {
-            if defaults.object(forKey: Keys.blockImages) == nil {
-                return true
-            }
-            return defaults.bool(forKey: Keys.blockImages)
-        }
-        set { defaults.set(newValue, forKey: Keys.blockImages) }
-    }
-
-    var blockFonts: Bool {
-        get {
-            if defaults.object(forKey: Keys.blockFonts) == nil {
-                return true
-            }
-            return defaults.bool(forKey: Keys.blockFonts)
-        }
-        set { defaults.set(newValue, forKey: Keys.blockFonts) }
-    }
-
-    var blockVideo: Bool {
-        get {
-            if defaults.object(forKey: Keys.blockVideo) == nil {
-                return true
-            }
-            return defaults.bool(forKey: Keys.blockVideo)
-        }
-        set { defaults.set(newValue, forKey: Keys.blockVideo) }
-    }
-
-    var blockAudio: Bool {
-        get {
-            if defaults.object(forKey: Keys.blockAudio) == nil {
-                return true
-            }
-            return defaults.bool(forKey: Keys.blockAudio)
-        }
-        set { defaults.set(newValue, forKey: Keys.blockAudio) }
     }
 
     var maxResponseSize: Int {
