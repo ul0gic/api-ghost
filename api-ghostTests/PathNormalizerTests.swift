@@ -106,6 +106,36 @@ struct PathNormalizerTests {
         #expect(normalized == "/users/12")
     }
 
+    // MARK: - normalizePaths: sibling-aware numeric collapse
+
+    @Test
+    func shortNumericSiblingsCollapseToId() {
+        let result = normalizer.normalizePaths(["/users/7", "/users/42"])
+        #expect(result["/users/7"] == "/users/{id}")
+        #expect(result["/users/42"] == "/users/{id}")
+    }
+
+    @Test
+    func loneShortNumericStaysLiteralAcrossBatch() {
+        let result = normalizer.normalizePaths(["/users/12", "/orders/9"])
+        #expect(result["/users/12"] == "/users/12")
+        #expect(result["/orders/9"] == "/orders/9")
+    }
+
+    @Test
+    func versionSegmentsAreNeverTreatedAsNumericIds() {
+        let result = normalizer.normalizePaths(["/v1/users/7", "/v1/users/42"])
+        #expect(result["/v1/users/7"] == "/v1/users/{id}")
+        #expect(result["/v1/users/42"] == "/v1/users/{id}")
+    }
+
+    @Test
+    func nestedNumericSiblingsCollapseAtEachPosition() {
+        let result = normalizer.normalizePaths(["/users/7/posts/1", "/users/8/posts/2"])
+        #expect(result["/users/7/posts/1"] == "/users/{id}/posts/{id}")
+        #expect(result["/users/8/posts/2"] == "/users/{id}/posts/{id}")
+    }
+
     // MARK: - normalizePath: edge cases
 
     @Test

@@ -130,13 +130,23 @@ struct GraphQLParserTests {
     }
 
     @Test
-    func restBodyWithQueryFieldOnNonGraphQLPathIsMisclassified() throws {
+    func restBodyWithQueryFieldOnNonGraphQLPathIsNotClassifiedAsGraphQL() throws {
         let url = try requireURL("https://api.example.com/v1/search")
         let body = try JSONSerialization.data(withJSONObject: ["query": "subscription plans and pricing"])
         let info = GraphQLParser.parse(method: "POST", url: url, contentType: "application/json", body: body)
-        withKnownIssue("QA-003: a REST 'query' string field on a non-GraphQL path is classified as GraphQL") {
-            #expect(info == nil, "a REST search body with a 'query' string must not be treated as GraphQL")
-        }
+        #expect(info == nil, "a REST search body with a 'query' string must not be treated as GraphQL")
+    }
+
+    @Test
+    func bodyOnlyQueryWithSelectionSetOnNonGraphQLPathIsClassified() throws {
+        let url = try requireURL("https://api.example.com/v1/data")
+        let body = try JSONSerialization.data(withJSONObject: ["query": "query GetUser { user { id } }"])
+        let info = try #require(
+            GraphQLParser.parse(method: "POST", url: url, contentType: "application/json", body: body),
+            "a real GraphQL document in a 'query' field must be classified even off a GraphQL path"
+        )
+        #expect(info.operationType == .query)
+        #expect(info.operationName == "GetUser")
     }
 
     // MARK: - Column mapping

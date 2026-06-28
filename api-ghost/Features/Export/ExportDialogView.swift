@@ -226,7 +226,7 @@ struct ExportDialogView: View {
     private func loadStats() {
         do {
             requestCount = try CaptureStore.shared.count()
-            filteredCount = try CaptureStore.shared.filteredCount()
+            filteredCount = AppState.shared.filteredRequestsCount
             databaseSize = DatabaseManager.shared.getDatabaseSize()
         } catch {
             logger.error("Failed to load stats: \(error)")

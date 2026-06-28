@@ -255,7 +255,7 @@ struct DataManagementSettingsTab: View {
     private func loadStats() {
         do {
             requestCount = try CaptureStore.shared.count()
-            filteredCount = try CaptureStore.shared.filteredCount()
+            filteredCount = AppState.shared.filteredRequestsCount
             uniqueDomains = try CaptureStore.shared.uniqueDomainCount()
             uniqueEndpoints = try CaptureStore.shared.uniqueEndpointCount()
             databaseSize = DatabaseManager.shared.getDatabaseSize()

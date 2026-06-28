@@ -230,7 +230,7 @@ struct WipeConfirmationView: View {
     private func loadStats() {
         do {
             requestCount = try CaptureStore.shared.count()
-            filteredCount = try CaptureStore.shared.filteredCount()
+            filteredCount = AppState.shared.filteredRequestsCount
             // uniqueEndpointCount() runs regex over all response bodies — too slow here.
             endpointCount = try CaptureStore.shared.uniquePathCount()
             domainCount = try CaptureStore.shared.uniqueDomainCount()

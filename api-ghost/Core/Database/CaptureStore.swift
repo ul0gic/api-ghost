@@ -119,11 +119,6 @@ final class CaptureStore: Sendable {
         }
     }
 
-    func filteredCount() throws -> Int {
-        // Dead since filtered traffic is dropped, not stored; retained only because frozen Export/Wipe still call it (DBT-003).
-        0
-    }
-
     func count(byHost host: String) throws -> Int {
         guard let db = database else { return 0 }
         return try db.read { db in

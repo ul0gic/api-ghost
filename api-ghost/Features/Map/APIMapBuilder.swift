@@ -180,20 +180,21 @@ final class APIMapBuilder: Sendable {
         classification: DomainClassification
     ) -> APIDomain {
         let normalizer = PathNormalizer.shared
-        var normalizedGroups: [String: [RawRow]] = [:]
+        let normalizedByPath = normalizer.normalizePaths(rows.map(\.path))
+        var normalizedGroups: [String: (normalizedPath: String, rows: [RawRow])] = [:]
         var allMethods: Set<String> = []
         var totalRequests = 0
 
         for raw in rows {
-            let (normalizedPath, _) = normalizer.normalizePath(raw.path)
+            let normalizedPath = normalizedByPath[raw.path] ?? normalizer.normalizePath(raw.path).normalized
             let key = "\(raw.method):\(normalizedPath)"
-            normalizedGroups[key, default: []].append(raw)
+            normalizedGroups[key, default: (normalizedPath, [])].rows.append(raw)
             allMethods.insert(raw.method)
             totalRequests += raw.hitCount
         }
 
         let mergedEndpoints = normalizedGroups.values.compactMap { group in
-            mergeEndpoint(rows: group, normalizer: normalizer)
+            mergeEndpoint(normalizedPath: group.normalizedPath, rows: group.rows)
         }
 
         let rootNodes = buildPathTree(from: mergedEndpoints)
@@ -269,9 +270,8 @@ final class APIMapBuilder: Sendable {
 
     // MARK: - Merge Endpoints
 
-    private static func mergeEndpoint(rows: [RawRow], normalizer: PathNormalizer) -> APIEndpoint? {
+    private static func mergeEndpoint(normalizedPath: String, rows: [RawRow]) -> APIEndpoint? {
         guard let first = rows.first else { return nil }
-        let (normalizedPath, _) = normalizer.normalizePath(first.path)
 
         var statusCounts: [Int: Int] = [:]
         var totalHits = 0

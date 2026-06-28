@@ -6,6 +6,13 @@ struct PatternRule {
     let minLength: Int
 }
 
+private struct ClassifiedSegment {
+    let original: String
+    let token: String
+    let isNumericCandidate: Bool
+    let isAlreadyId: Bool
+}
+
 final class PathNormalizer: @unchecked Sendable {
     // MARK: - Singleton
 
@@ -148,6 +155,46 @@ final class PathNormalizer: @unchecked Sendable {
         return (normalizedPath, detectedParameters)
     }
 
+    /// Sibling-aware normalization: a short numeric segment collapses to `{id}` only when peers at the same
+    /// tree position carry ≥2 distinct numeric values — so a lone `/users/12` stays literal while `/users/7`
+    /// and `/users/42` merge. Returns original-path → normalized-path for the whole batch.
+    func normalizePaths(_ paths: [String]) -> [String: String] {
+        let classified = paths.map { (path: $0, segments: classifySegments($0)) }
+
+        var distinctNumericByPosition: [String: Set<String>] = [:]
+        for entry in classified {
+            var positionKey: [String] = []
+            for segment in entry.segments {
+                if segment.isNumericCandidate {
+                    distinctNumericByPosition[positionKey.joined(separator: "/"), default: []]
+                        .insert(segment.original)
+                    positionKey.append("#")
+                } else {
+                    positionKey.append(segment.token)
+                }
+            }
+        }
+
+        var result: [String: String] = [:]
+        for entry in classified {
+            var positionKey: [String] = []
+            var output: [String] = []
+            for segment in entry.segments {
+                if segment.isNumericCandidate {
+                    let peers = distinctNumericByPosition[positionKey.joined(separator: "/")]?.count ?? 0
+                    let collapse = segment.isAlreadyId || peers >= 2
+                    output.append(collapse ? ParameterType.numericId.placeholder : segment.original)
+                    positionKey.append("#")
+                } else {
+                    output.append(segment.token)
+                    positionKey.append(segment.token)
+                }
+            }
+            result[entry.path] = output.isEmpty ? "/" : "/" + output.joined(separator: "/")
+        }
+        return result
+    }
+
     func detectParameterType(_ segment: String) -> ParameterType? {
         let range = NSRange(segment.startIndex..., in: segment)
 
@@ -193,6 +240,30 @@ final class PathNormalizer: @unchecked Sendable {
     }
 
     // MARK: - Private Helpers
+
+    private func classifySegments(_ path: String) -> [ClassifiedSegment] {
+        path.split(separator: "/", omittingEmptySubsequences: true).map { rawSegment in
+            let segment = String(rawSegment)
+
+            if staticSegments.contains(segment.lowercased()) {
+                return ClassifiedSegment(
+                    original: segment, token: segment, isNumericCandidate: false, isAlreadyId: false
+                )
+            }
+
+            if let paramType = detectParameterType(segment) {
+                let isId = paramType == .numericId
+                return ClassifiedSegment(
+                    original: segment, token: paramType.placeholder, isNumericCandidate: isId, isAlreadyId: isId
+                )
+            }
+
+            let isPureNumeric = !segment.isEmpty && segment.allSatisfy(\.isNumber)
+            return ClassifiedSegment(
+                original: segment, token: segment, isNumericCandidate: isPureNumeric, isAlreadyId: false
+            )
+        }
+    }
 
     private func isLikelyToken(_ segment: String) -> Bool {
         let uppercaseCount = segment.filter { $0.isUppercase }.count

@@ -73,7 +73,9 @@ nonisolated enum GraphQLParser {
         let explicitName = nonEmpty(object["operationName"] as? String)
         let persisted = hasPersistedQuery(object)
 
-        guard queryText != nil || explicitName != nil || persisted || isGraphQLPath else { return nil }
+        let strongSignal = explicitName != nil || persisted || isGraphQLPath
+        let queryIsDocument = queryText.map(looksLikeGraphQLDocument) ?? false
+        guard strongSignal || queryIsDocument else { return nil }
 
         let type = queryText.map(operationType(fromQuery:)) ?? .unknown
         let name = explicitName ?? queryText.flatMap(operationName(fromQuery:))
@@ -100,7 +102,9 @@ nonisolated enum GraphQLParser {
         let explicitName = nonEmpty(items.first { $0.name == "operationName" }?.value)
         let persisted = items.first { $0.name == "extensions" }?.value?.contains("persistedQuery") ?? false
 
-        guard queryText != nil || explicitName != nil || persisted || isGraphQLPath else { return nil }
+        let strongSignal = explicitName != nil || persisted || isGraphQLPath
+        let queryIsDocument = queryText.map(looksLikeGraphQLDocument) ?? false
+        guard strongSignal || queryIsDocument else { return nil }
 
         let type = queryText.map(operationType(fromQuery:)) ?? .unknown
         let name = explicitName ?? queryText.flatMap(operationName(fromQuery:))
@@ -115,7 +119,18 @@ nonisolated enum GraphQLParser {
     }
 
     nonisolated private static func isGraphQLObject(_ object: [String: Any]) -> Bool {
-        object["query"] is String || nonEmpty(object["operationName"] as? String) != nil || hasPersistedQuery(object)
+        (object["query"] as? String).map(looksLikeGraphQLDocument) == true
+            || nonEmpty(object["operationName"] as? String) != nil
+            || hasPersistedQuery(object)
+    }
+
+    nonisolated private static func looksLikeGraphQLDocument(_ query: String) -> Bool {
+        let stripped = stripLeading(query)
+        guard let first = stripped.first else { return false }
+        if first == "{" { return true }
+        let keyword = String(stripped.prefix { $0.isLetter })
+        guard ["query", "mutation", "subscription", "fragment"].contains(keyword) else { return false }
+        return stripped.contains("{")
     }
 
     nonisolated private static func hasPersistedQuery(_ object: [String: Any]) -> Bool {

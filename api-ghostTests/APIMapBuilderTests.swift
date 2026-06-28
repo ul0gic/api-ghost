@@ -62,6 +62,21 @@ struct APIMapBuilderTests {
         #expect(endpoint.hitCount == 5)
     }
 
+    @Test
+    func shortNumericSiblingsMergeIntoSingleEndpoint() throws {
+        let rows = [
+            RawRow(host: "api.example.com", path: "/users/7", method: "GET"),
+            RawRow(host: "api.example.com", path: "/users/42", method: "GET")
+        ]
+        let domains = APIMapBuilder.buildDomains(from: rows)
+        let domain = try #require(MapTestSupport.domain(domains, host: "api.example.com"))
+        #expect(domain.uniqueEndpoints == 1)
+        let endpoint = try #require(
+            MapTestSupport.endpoint(in: domain, method: "GET", normalizedPath: "/users/{id}")
+        )
+        #expect(Set(endpoint.examplePaths) == ["/users/7", "/users/42"])
+    }
+
     // MARK: - Status rollups
 
     @Test
