@@ -4,7 +4,7 @@ import Combine
 
 // MARK: - API Endpoint
 
-struct APIEndpoint: Identifiable, Hashable {
+struct APIEndpoint: Identifiable, Hashable, StatusRollupProviding {
     let id: UUID
 
     let normalizedPath: String
@@ -12,6 +12,8 @@ struct APIEndpoint: Identifiable, Hashable {
     let method: String
 
     let statusCodes: Set<Int>
+
+    let statusCounts: [Int: Int]
 
     let hitCount: Int
 
@@ -23,6 +25,8 @@ struct APIEndpoint: Identifiable, Hashable {
 
     let contentTypes: Set<String>
 
+    let graphqlOperations: [GraphQLOperation]
+
     // MARK: - Initialization
 
     init(
@@ -30,24 +34,30 @@ struct APIEndpoint: Identifiable, Hashable {
         normalizedPath: String,
         method: String,
         statusCodes: Set<Int> = [],
+        statusCounts: [Int: Int] = [:],
         hitCount: Int = 1,
         examplePaths: [String] = [],
         hasRequestBody: Bool = false,
         hasResponseBody: Bool = false,
-        contentTypes: Set<String> = []
+        contentTypes: Set<String> = [],
+        graphqlOperations: [GraphQLOperation] = []
     ) {
         self.id = id
         self.normalizedPath = normalizedPath
         self.method = method
         self.statusCodes = statusCodes
+        self.statusCounts = statusCounts
         self.hitCount = hitCount
         self.examplePaths = examplePaths
         self.hasRequestBody = hasRequestBody
         self.hasResponseBody = hasResponseBody
         self.contentTypes = contentTypes
+        self.graphqlOperations = graphqlOperations
     }
 
     // MARK: - Computed Properties
+
+    var isGraphQL: Bool { !graphqlOperations.isEmpty }
 
     var primaryStatusCode: Int? {
         let successCodes = statusCodes.filter { $0 >= 200 && $0 < 300 }
@@ -190,6 +200,10 @@ final class APIDomain: Identifiable, ObservableObject {
 
     let methods: Set<String>
 
+    let classification: DomainClassification
+
+    let category: String?
+
     @Published var isExpanded: Bool
 
     // MARK: - Initialization
@@ -201,6 +215,8 @@ final class APIDomain: Identifiable, ObservableObject {
         totalRequests: Int = 0,
         uniqueEndpoints: Int = 0,
         methods: Set<String> = [],
+        classification: DomainClassification = .target,
+        category: String? = nil,
         isExpanded: Bool = true
     ) {
         self.id = id
@@ -209,6 +225,8 @@ final class APIDomain: Identifiable, ObservableObject {
         self.totalRequests = totalRequests
         self.uniqueEndpoints = uniqueEndpoints
         self.methods = methods
+        self.classification = classification
+        self.category = category
         self.isExpanded = isExpanded
     }
 

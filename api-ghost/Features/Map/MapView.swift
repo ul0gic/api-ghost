@@ -5,8 +5,8 @@ import SwiftUI
 struct MapView: View {
     @State private var viewModel = MapViewModel()
     @State private var searchText: String = ""
-    @State private var selectedEndpoint: APIEndpoint?
-    @State private var showingEndpointDetail: Bool = false
+    @State private var selection: EndpointDetail?
+    @State private var showDetailPanel: Bool = true
 
     var body: some View {
         VStack(spacing: 0) {
@@ -18,13 +18,12 @@ struct MapView: View {
             } else if viewModel.domains.isEmpty {
                 emptyStateView
             } else {
-                HSplitView {
-                    treeContent.frame(minWidth: 400)
-                    if let endpoint = selectedEndpoint {
-                        EndpointDetailPanel(endpoint: endpoint) {
-                            selectedEndpoint = nil
-                        }
-                        .frame(minWidth: 300, idealWidth: 350, maxWidth: 450)
+                HStack(spacing: 0) {
+                    treeContent.frame(maxWidth: .infinity)
+                    if showDetailPanel {
+                        Divider().background(Color.ghostBorder)
+                        EndpointDetailPanel(detail: selection)
+                            .frame(width: 320)
                     }
                 }
             }
@@ -65,6 +64,7 @@ struct MapView: View {
             searchField
             refreshButton
             expandCollapseMenu
+            detailToggleButton
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
@@ -124,6 +124,16 @@ struct MapView: View {
         .help("Expand/Collapse")
     }
 
+    private var detailToggleButton: some View {
+        Button(action: { showDetailPanel.toggle() }, label: {
+            Image(systemName: showDetailPanel ? "sidebar.right" : "sidebar.squares.right")
+                .font(.system(size: 12))
+                .foregroundColor(showDetailPanel ? .ghostAccent : .ghostTextSecondary)
+        })
+        .buttonStyle(.plain)
+        .help("Toggle Detail Panel")
+    }
+
     private func quickStat(label: String, value: Int) -> some View {
         HStack(spacing: 4) {
             Text("\(value)")
@@ -140,41 +150,98 @@ struct MapView: View {
     private var treeContent: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
-                ForEach(filteredDomains) { domain in
-                    MapDomainRow(
-                        domain: domain,
-                        searchText: searchText,
-                        selectedEndpoint: $selectedEndpoint
+                if !filteredTargetDomains.isEmpty {
+                    sectionHeader(
+                        tag: "Target",
+                        count: "\(filteredTargetDomains.count) domains"
                     )
+                    ForEach(filteredTargetDomains) { domain in
+                        TargetDomainRow(
+                            domain: domain,
+                            searchText: searchText,
+                            selection: $selection
+                        )
+                    }
+                }
+
+                if !filteredThirdPartyDomains.isEmpty {
+                    sectionHeader(
+                        tag: "Third-Party",
+                        count: "\(filteredThirdPartyDomains.count) domains · filtered from map"
+                    )
+                    .padding(.top, 16)
+                    VStack(spacing: 0) {
+                        ForEach(filteredThirdPartyDomains) { domain in
+                            ThirdPartyRow(domain: domain)
+                            if domain.id != filteredThirdPartyDomains.last?.id {
+                                Divider().background(Color.ghostBorder)
+                            }
+                        }
+                    }
+                    .background(Color.ghostSurface)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 7).stroke(Color.ghostBorder, lineWidth: 1)
+                    )
+                    .cornerRadius(7)
                 }
             }
-            .padding(.vertical, 8)
+            .padding(20)
         }
         .background(Color.ghostBase)
     }
 
-    private var filteredDomains: [APIDomain] {
-        if searchText.isEmpty { return viewModel.domains }
-        let lowercasedSearch = searchText.lowercased()
-        return viewModel.domains.filter { domain in
-            domain.host.lowercased().contains(lowercasedSearch) ||
-            containsMatchingEndpoint(in: domain, search: lowercasedSearch)
+    private func sectionHeader(tag: String, count: String) -> some View {
+        HStack(spacing: 8) {
+            Text(tag.uppercased())
+                .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                .foregroundColor(.ghostTextMuted)
+                .tracking(0.8)
+            Rectangle().fill(Color.ghostBorder).frame(height: 1)
+            Text(count)
+                .font(.system(size: 10, design: .monospaced))
+                .foregroundColor(.ghostTextMuted)
+        }
+        .padding(.bottom, 12)
+    }
+
+    private var filteredTargetDomains: [APIDomain] {
+        filter(viewModel.targetDomains)
+    }
+
+    private var filteredThirdPartyDomains: [APIDomain] {
+        filter(viewModel.thirdPartyDomains)
+    }
+
+    private func filter(_ domains: [APIDomain]) -> [APIDomain] {
+        if searchText.isEmpty { return domains }
+        let search = searchText.lowercased()
+        return domains.filter { domain in
+            domain.host.lowercased().contains(search) ||
+            containsMatchingEndpoint(in: domain, search: search)
         }
     }
 
     private func containsMatchingEndpoint(in domain: APIDomain, search: String) -> Bool {
         func checkNode(_ node: PathNode) -> Bool {
             if node.segment.lowercased().contains(search) { return true }
-            for endpoint in node.endpoints
-                where endpoint.normalizedPath.lowercased().contains(search) ||
-                      endpoint.method.lowercased().contains(search) {
-                return true
+            for endpoint in node.endpoints {
+                if endpoint.normalizedPath.lowercased().contains(search) ||
+                   endpoint.method.lowercased().contains(search) {
+                    return true
+                }
+                if endpoint.graphqlOperations.contains(where: { $0.name.lowercased().contains(search) }) {
+                    return true
+                }
             }
             return node.children.contains { checkNode($0) }
         }
         return domain.rootNodes.contains { checkNode($0) }
     }
+}
 
+// MARK: - Map View States
+
+extension MapView {
     // MARK: - Loading View
 
     private var loadingView: some View {

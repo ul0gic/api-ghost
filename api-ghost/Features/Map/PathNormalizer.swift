@@ -207,6 +207,51 @@ final class PathNormalizer: @unchecked Sendable {
     }
 }
 
+// MARK: - Domain Analysis
+
+extension PathNormalizer {
+    private static let multiPartSuffixes: Set<String> = [
+        "co.uk", "org.uk", "gov.uk", "ac.uk",
+        "com.au", "co.jp", "co.nz", "com.br"
+    ]
+
+    /// Pragmatic eTLD+1 — last two DNS labels, or three for a known multi-part public suffix.
+    static func registrableDomain(_ host: String) -> String {
+        let hostOnly = host.lowercased()
+            .split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
+            .first
+            .map(String.init) ?? host.lowercased()
+
+        let labels = hostOnly.split(separator: ".", omittingEmptySubsequences: true).map(String.init)
+        guard labels.count > 2 else { return hostOnly }
+
+        let lastTwo = labels.suffix(2).joined(separator: ".")
+        if multiPartSuffixes.contains(lastTwo) {
+            return labels.suffix(3).joined(separator: ".")
+        }
+        return lastTwo
+    }
+
+    /// Best-effort third-party label from host keywords; nil when unrecognized.
+    static func thirdPartyCategory(for host: String) -> String? {
+        let lower = host.lowercased()
+        let rules: [(needles: [String], label: String)] = [
+            (["cdn", "cloudfront", "akamai", "fastly", "jsdelivr", "unpkg"], "CDN"),
+            (["analytics", "telemetry", "segment", "mixpanel", "amplitude", "ga.", "gtm", "doubleclick"],
+             "Analytics / Telemetry"),
+            (["sentry", "bugsnag", "rollbar", "errors", "crash", "datadog", "newrelic"],
+             "Error / Session Tracking"),
+            (["consent", "cookiebot", "onetrust", "cmp", "privacy"], "Consent / CMP"),
+            (["ads", "adservice", "adsystem", "adnxs", "taboola", "outbrain"], "Advertising"),
+            (["fonts", "gstatic", "typekit"], "Fonts / Assets")
+        ]
+        for rule in rules where rule.needles.contains(where: { lower.contains($0) }) {
+            return rule.label
+        }
+        return nil
+    }
+}
+
 // MARK: - Path Analysis Utilities
 
 extension PathNormalizer {

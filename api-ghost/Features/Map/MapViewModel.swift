@@ -9,6 +9,15 @@ final class MapViewModel {
     var isLoading: Bool = false
     var error: Error?
 
+    var targetDomains: [APIDomain] {
+        domains.filter { $0.classification == .target }
+    }
+
+    var thirdPartyDomains: [APIDomain] {
+        domains.filter { $0.classification == .thirdParty }
+            .sorted { $0.totalRequests > $1.totalRequests }
+    }
+
     private let builder = APIMapBuilder.shared
 
     func loadMap() {

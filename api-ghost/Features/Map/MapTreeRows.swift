@@ -1,74 +1,70 @@
 import SwiftUI
 
-// MARK: - Map Domain Row
+// MARK: - Target Domain Row
 
-struct MapDomainRow: View {
+struct TargetDomainRow: View {
     @ObservedObject var domain: APIDomain
     let searchText: String
-    @Binding var selectedEndpoint: APIEndpoint?
+    @Binding var selection: EndpointDetail?
 
     @State private var isHovered: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 8) {
-                Button(action: { domain.isExpanded.toggle() }, label: {
-                    Image(systemName: domain.isExpanded ? "chevron.down" : "chevron.right")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundColor(.ghostTextMuted)
-                        .frame(width: 16, height: 16)
-                })
-                .buttonStyle(.plain)
-
-                Image(systemName: "globe")
-                    .font(.system(size: 12))
-                    .foregroundColor(.ghostAccent)
-
-                Text(domain.host)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(.ghostTextPrimary)
-
-                Spacer()
-
-                HStack(spacing: 4) {
-                    ForEach(Array(domain.methods).sorted(), id: \.self) { method in
-                        MapMethodBadge(method: method, size: .tiny)
-                    }
-                }
-
-                Text("\(domain.uniqueEndpoints) endpoints")
-                    .font(.system(size: 11))
-                    .foregroundColor(.ghostTextMuted)
-
-                Text("\(domain.totalRequests)")
-                    .font(.system(size: 11, weight: .medium, design: .monospaced))
-                    .foregroundColor(.ghostTextSecondary)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Color.ghostSurfaceRaised)
-                    .cornerRadius(4)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(isHovered ? Color.ghostSurfaceRaised : Color.clear)
-            .onHover { hovering in
-                isHovered = hovering
-            }
-            .onTapGesture {
-                domain.isExpanded.toggle()
-            }
+            domainHeader
 
             if domain.isExpanded {
-                ForEach(domain.rootNodes) { node in
-                    PathNodeRow(
-                        node: node,
-                        depth: 1,
-                        searchText: searchText,
-                        selectedEndpoint: $selectedEndpoint
-                    )
+                VStack(alignment: .leading, spacing: 2) {
+                    ForEach(domain.rootNodes) { node in
+                        PathNodeRow(
+                            node: node,
+                            parentPath: "",
+                            host: domain.host,
+                            searchText: searchText,
+                            selection: $selection
+                        )
+                    }
                 }
+                .padding(.leading, 18)
+                .overlay(alignment: .leading) {
+                    Rectangle().fill(Color.ghostBorder).frame(width: 1)
+                }
+                .padding(.top, 2)
             }
         }
+        .padding(.bottom, 8)
+    }
+
+    private var domainHeader: some View {
+        HStack(spacing: 8) {
+            Image(systemName: domain.isExpanded ? "chevron.down" : "chevron.right")
+                .font(.system(size: 10, weight: .medium))
+                .foregroundColor(.ghostTextMuted)
+                .frame(width: 12)
+
+            Text(domain.host)
+                .font(.system(size: 13, weight: .medium, design: .monospaced))
+                .foregroundColor(.ghostTextPrimary)
+
+            Spacer()
+
+            Text("\(domain.totalRequests) req")
+                .font(.system(size: 11, design: .monospaced))
+                .foregroundColor(.ghostTextMuted)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 2)
+                .background(Color.ghostSurfaceRaised)
+                .cornerRadius(4)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(isHovered ? Color.ghostSurfaceRaised : Color.ghostSurface)
+        .overlay(
+            RoundedRectangle(cornerRadius: 7).stroke(Color.ghostBorder, lineWidth: 1)
+        )
+        .cornerRadius(7)
+        .onHover { isHovered = $0 }
+        .onTapGesture { domain.isExpanded.toggle() }
     }
 }
 
@@ -76,102 +72,92 @@ struct MapDomainRow: View {
 
 struct PathNodeRow: View {
     @ObservedObject var node: PathNode
-    let depth: Int
+    let parentPath: String
+    let host: String
     let searchText: String
-    @Binding var selectedEndpoint: APIEndpoint?
+    @Binding var selection: EndpointDetail?
 
-    @State private var isHovered: Bool = false
-
-    private let indentWidth: CGFloat = 20
+    private var fullPath: String { "\(parentPath)/\(node.segment)" }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            if node.hasChildren || node.isParameter {
-                nodeHeader
-            }
-
-            if node.isExpanded || (!node.hasChildren && node.endpoints.isEmpty) {
-                nodeChildren
+        VStack(alignment: .leading, spacing: 1) {
+            if node.isParameter {
+                inlineEndpoints(parentPath: parentPath)
+                childNodes
+            } else {
+                groupHeader
+                if node.isExpanded {
+                    VStack(alignment: .leading, spacing: 1) {
+                        inlineEndpoints(parentPath: fullPath)
+                        childNodes
+                    }
+                    .padding(.leading, 16)
+                }
             }
         }
     }
 
-    private var nodeHeader: some View {
+    private var groupHeader: some View {
         HStack(spacing: 6) {
-            ForEach(0..<depth, id: \.self) { _ in
-                Rectangle()
-                    .fill(Color.clear)
-                    .frame(width: indentWidth)
-            }
+            Image(systemName: node.isExpanded ? "chevron.down" : "chevron.right")
+                .font(.system(size: 9, weight: .medium))
+                .foregroundColor(.ghostTextMuted)
+                .frame(width: 12)
 
-            if !node.children.isEmpty || !node.endpoints.isEmpty {
-                Button(action: { node.isExpanded.toggle() }, label: {
-                    Image(systemName: node.isExpanded ? "chevron.down" : "chevron.right")
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundColor(.ghostTextMuted)
-                        .frame(width: 14, height: 14)
-                })
-                .buttonStyle(.plain)
-            } else {
-                Rectangle()
-                    .fill(Color.clear)
-                    .frame(width: 14)
-            }
-
-            if node.isParameter {
-                ParameterBadge(type: node.parameterType ?? .unknown)
-            } else {
-                Text("/\(node.segment)")
-                    .font(.system(size: 12, design: .monospaced))
-                    .foregroundColor(.ghostTextSecondary)
-            }
+            Text("/\(node.segment)")
+                .font(.system(size: 12, design: .monospaced))
+                .foregroundColor(.ghostTextSecondary)
 
             Spacer()
 
             if node.totalHitCount > 0 {
-                Text("\(node.totalHitCount)")
+                Text("\(node.totalHitCount)×")
                     .font(.system(size: 10, design: .monospaced))
                     .foregroundColor(.ghostTextMuted)
-                    .padding(.horizontal, 5)
-                    .padding(.vertical, 1)
-                    .background(Color.ghostSurfaceRaised)
-                    .cornerRadius(3)
             }
         }
-        .padding(.horizontal, 12)
+        .padding(.horizontal, 8)
         .padding(.vertical, 5)
-        .background(isHovered ? Color.ghostSurfaceRaised.opacity(0.5) : Color.clear)
-        .onHover { hovering in
-            isHovered = hovering
-        }
-        .onTapGesture {
-            if !node.children.isEmpty || !node.endpoints.isEmpty {
-                node.isExpanded.toggle()
+        .contentShape(Rectangle())
+        .onTapGesture { node.isExpanded.toggle() }
+    }
+
+    @ViewBuilder
+    private func inlineEndpoints(parentPath: String) -> some View {
+        ForEach(node.endpoints) { endpoint in
+            if endpoint.isGraphQL {
+                GraphQLBlock(
+                    endpoint: endpoint,
+                    displayPath: relativePath(endpoint.normalizedPath, from: parentPath),
+                    host: host,
+                    selection: $selection
+                )
+            } else {
+                EndpointRow(
+                    endpoint: endpoint,
+                    displayPath: relativePath(endpoint.normalizedPath, from: parentPath),
+                    host: host,
+                    selection: $selection
+                )
             }
         }
     }
 
-    private var nodeChildren: some View {
-        Group {
-            ForEach(node.children) { child in
-                PathNodeRow(
-                    node: child,
-                    depth: depth + 1,
-                    searchText: searchText,
-                    selectedEndpoint: $selectedEndpoint
-                )
-            }
-
-            ForEach(node.endpoints) { endpoint in
-                EndpointRow(
-                    endpoint: endpoint,
-                    depth: depth + 1,
-                    isSelected: selectedEndpoint?.id == endpoint.id
-                ) {
-                    selectedEndpoint = endpoint
-                }
-            }
+    @ViewBuilder private var childNodes: some View {
+        ForEach(node.children) { child in
+            PathNodeRow(
+                node: child,
+                parentPath: node.isParameter ? parentPath : fullPath,
+                host: host,
+                searchText: searchText,
+                selection: $selection
+            )
         }
+    }
+
+    private func relativePath(_ path: String, from prefix: String) -> String {
+        guard path.hasPrefix(prefix), path.count > prefix.count else { return "/" }
+        return String(path.dropFirst(prefix.count))
     }
 }
 
@@ -179,95 +165,180 @@ struct PathNodeRow: View {
 
 struct EndpointRow: View {
     let endpoint: APIEndpoint
-    let depth: Int
-    let isSelected: Bool
-    let onSelect: () -> Void
+    let displayPath: String
+    let host: String
+    @Binding var selection: EndpointDetail?
 
     @State private var isHovered: Bool = false
 
-    private let indentWidth: CGFloat = 20
+    private var isSelected: Bool { selection?.id == endpoint.id }
 
     var body: some View {
-        HStack(spacing: 6) {
-            ForEach(0..<depth, id: \.self) { _ in
-                Rectangle()
-                    .fill(Color.clear)
-                    .frame(width: indentWidth)
-            }
-
-            Image(systemName: "arrow.right")
-                .font(.system(size: 8))
-                .foregroundColor(.ghostTextMuted)
-                .frame(width: 14)
-
-            MapMethodBadge(method: endpoint.method, size: .normal)
-
-            Text(pathSuffix)
-                .font(.system(size: 12, design: .monospaced))
-                .foregroundColor(.ghostTextPrimary)
-                .lineLimit(1)
-
+        HStack(spacing: 8) {
+            OpMethodBadge(method: endpoint.method)
+            ParameterizedPathText(path: displayPath)
             Spacer()
-
-            HStack(spacing: 3) {
-                ForEach(Array(endpoint.statusCodes).sorted().prefix(3), id: \.self) { code in
-                    StatusCodeBadge(code: code)
-                }
-                if endpoint.statusCodes.count > 3 {
-                    Text("+\(endpoint.statusCodes.count - 3)")
-                        .font(.system(size: 9))
-                        .foregroundColor(.ghostTextMuted)
-                }
-            }
-
-            Text("\(endpoint.hitCount)")
-                .font(.system(size: 10, weight: .medium, design: .monospaced))
-                .foregroundColor(.ghostTextSecondary)
-                .padding(.horizontal, 6)
-                .padding(.vertical, 2)
-                .background(Color.ghostSurfaceRaised)
-                .cornerRadius(4)
-
-            HStack(spacing: 4) {
-                if endpoint.hasRequestBody {
-                    Image(systemName: "arrow.up.square.fill")
-                        .font(.system(size: 10))
-                        .foregroundColor(.ghostTextMuted)
-                        .help("Has request body")
-                }
-                if endpoint.hasResponseBody {
-                    Image(systemName: "arrow.down.square.fill")
-                        .font(.system(size: 10))
-                        .foregroundColor(.ghostTextMuted)
-                        .help("Has response body")
-                }
+            HStack(spacing: 6) {
+                Text("\(endpoint.hitCount)×")
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundColor(.ghostTextMuted)
+                StatusRollupChips(counts: endpoint.sortedStatusCounts)
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
+        .padding(.horizontal, 8)
+        .frame(height: 36)
         .background(backgroundColor)
-        .onHover { hovering in
-            isHovered = hovering
+        .overlay(alignment: .leading) {
+            if isSelected {
+                Rectangle().fill(Color.ghostAccent).frame(width: 2)
+            }
         }
-        .onTapGesture {
-            onSelect()
-        }
+        .cornerRadius(5)
+        .contentShape(Rectangle())
+        .onHover { isHovered = $0 }
+        .onTapGesture { selection = EndpointDetail.from(endpoint: endpoint, host: host) }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(endpoint.method) \(displayPath), \(endpoint.hitCount) requests")
+        .accessibilityAddTraits(.isButton)
     }
 
     private var backgroundColor: Color {
-        if isSelected {
-            return Color.ghostAccentMuted
-        } else if isHovered {
-            return Color.ghostSurfaceRaised
-        }
+        if isSelected { return Color.ghostAccentMuted }
+        if isHovered { return Color.ghostSurfaceRaised }
         return Color.clear
     }
+}
 
-    private var pathSuffix: String {
-        let segments = endpoint.normalizedPath.split(separator: "/")
-        if let last = segments.last {
-            return String(last)
+// MARK: - GraphQL Block
+
+struct GraphQLBlock: View {
+    let endpoint: APIEndpoint
+    let displayPath: String
+    let host: String
+    @Binding var selection: EndpointDetail?
+
+    @State private var isExpanded: Bool = true
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            headerRow
+
+            if isExpanded {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(endpoint.graphqlOperations) { operation in
+                        operationRow(operation)
+                    }
+                }
+                .padding(.vertical, 4)
+                .background(Color.ghostSurface)
+            }
         }
-        return endpoint.normalizedPath
+        .overlay(
+            RoundedRectangle(cornerRadius: 7).stroke(Color.ghostAccent.opacity(0.15), lineWidth: 1)
+        )
+        .cornerRadius(7)
+        .padding(.vertical, 4)
+    }
+
+    private var headerRow: some View {
+        HStack(spacing: 8) {
+            Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                .font(.system(size: 10, weight: .medium))
+                .foregroundColor(.ghostAccent)
+                .frame(width: 12)
+            OpMethodBadge(method: endpoint.method)
+            Text(displayPath)
+                .font(.system(size: 12, design: .monospaced))
+                .foregroundColor(.ghostTextSecondary)
+            Text("GraphQL")
+                .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                .foregroundColor(.ghostAccent)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(Color.ghostAccentMuted)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 3).stroke(Color.ghostAccent.opacity(0.2), lineWidth: 1)
+                )
+                .cornerRadius(3)
+            Spacer()
+            Text("\(endpoint.hitCount)×")
+                .font(.system(size: 11, design: .monospaced))
+                .foregroundColor(.ghostTextMuted)
+            StatusRollupChips(counts: endpoint.sortedStatusCounts)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 7)
+        .background(Color.ghostAccent.opacity(0.04))
+        .contentShape(Rectangle())
+        .onTapGesture { isExpanded.toggle() }
+    }
+
+    private func operationRow(_ operation: GraphQLOperation) -> some View {
+        let isSelected = selection?.id == operation.id
+        return HStack(spacing: 8) {
+            GraphQLOpTypeBadge(type: operation.type)
+            Text(operation.name)
+                .font(.system(size: 12, design: .monospaced))
+                .foregroundColor(.ghostTextPrimary)
+                .lineLimit(1)
+            Spacer()
+            Text(operation.hitCount > 0 ? "\(operation.hitCount)×" : "—")
+                .font(.system(size: 11, design: .monospaced))
+                .foregroundColor(.ghostTextMuted)
+            StatusRollupChips(counts: operation.sortedStatusCounts)
+        }
+        .padding(.horizontal, 16)
+        .frame(height: 32)
+        .background(isSelected ? Color.ghostAccentMuted : Color.clear)
+        .contentShape(Rectangle())
+        .onTapGesture { selection = EndpointDetail.from(operation: operation, host: host) }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(operation.type.label) \(operation.name), \(operation.hitCount) requests")
+        .accessibilityAddTraits(.isButton)
+    }
+}
+
+// MARK: - Third-Party Row
+
+struct ThirdPartyRow: View {
+    @ObservedObject var domain: APIDomain
+
+    @State private var isHovered: Bool = false
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "chevron.right")
+                .font(.system(size: 10))
+                .foregroundColor(.ghostTextMuted)
+                .frame(width: 12)
+
+            Text(domain.host)
+                .font(.system(size: 12, design: .monospaced))
+                .foregroundColor(.ghostTextSecondary)
+
+            Spacer()
+
+            if let category = domain.category {
+                Text(category)
+                    .font(.system(size: 11))
+                    .foregroundColor(.ghostTextMuted)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 2)
+                    .background(Color.ghostSurfaceRaised)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 4).stroke(Color.ghostBorder, lineWidth: 1)
+                    )
+                    .cornerRadius(4)
+            }
+
+            Text("\(domain.totalRequests)")
+                .font(.system(size: 11, design: .monospaced))
+                .foregroundColor(.ghostTextMuted)
+                .frame(minWidth: 24, alignment: .trailing)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(isHovered ? Color.ghostSurfaceRaised : Color.clear)
+        .onHover { isHovered = $0 }
     }
 }

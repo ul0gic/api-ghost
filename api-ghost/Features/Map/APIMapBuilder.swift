@@ -19,48 +19,77 @@ final class APIMapBuilder: Sendable {
         guard let db = DatabaseManager.shared.database else {
             throw APIMapError.databaseNotAvailable
         }
-
-        let rawEndpoints = try await fetchRawEndpoints(from: db)
-        let groupedByHost = Dictionary(grouping: rawEndpoints) { $0.host }
-
-        let domains = groupedByHost.map { host, endpoints in
-            buildDomainTree(host: host, endpoints: endpoints)
-        }
-
-        return domains.sorted { $0.totalRequests > $1.totalRequests }
+        let rows = try await fetchRawRows(from: db)
+        return Self.buildDomains(from: rows)
     }
 
-    private func fetchRawEndpoints(from db: DatabaseQueue) async throws -> [RawEndpointData] {
-        try await db.read { db -> [RawEndpointData] in
+    /// Pure transform — DB-free seam for unit tests: normalize → merge → tree → graphql-group → classify.
+    static func buildDomains(from rows: [RawRow]) -> [APIDomain] {
+        let targetRegistrable = pickTargetRegistrableDomain(from: rows)
+        let groupedByHost = Dictionary(grouping: rows) { $0.host }
+
+        let domains = groupedByHost.map { host, hostRows -> APIDomain in
+            let isTarget = PathNormalizer.registrableDomain(host) == targetRegistrable
+            return buildDomain(
+                host: host,
+                rows: hostRows,
+                classification: isTarget ? .target : .thirdParty
+            )
+        }
+
+        return domains.sorted { lhs, rhs in
+            if lhs.classification != rhs.classification {
+                return lhs.classification == .target
+            }
+            return lhs.totalRequests > rhs.totalRequests
+        }
+    }
+
+    /// TARGET = registrable-domain group with most requests; ties → more unique endpoints, then lexicographic.
+    /// Upgradeable to a real browser-navigation signal once tabs (3.2) land.
+    private static func pickTargetRegistrableDomain(from rows: [RawRow]) -> String? {
+        let groups = Dictionary(grouping: rows) { PathNormalizer.registrableDomain($0.host) }
+        let ranked = groups.map { key, groupRows in
+            DomainRank(
+                key: key,
+                requests: groupRows.reduce(0) { $0 + $1.hitCount },
+                endpoints: Set(groupRows.map { "\($0.method):\($0.path)" }).count
+            )
+        }
+        return ranked.min { lhs, rhs in
+            if lhs.requests != rhs.requests { return lhs.requests > rhs.requests }
+            if lhs.endpoints != rhs.endpoints { return lhs.endpoints > rhs.endpoints }
+            return lhs.key < rhs.key
+        }?.key
+    }
+
+    private func fetchRawRows(from db: DatabaseQueue) async throws -> [RawRow] {
+        try await db.read { db -> [RawRow] in
             let sql = """
-                SELECT host, path, method,
-                    GROUP_CONCAT(DISTINCT status_code) as status_codes,
+                SELECT host, path, method, status_code,
+                    graphql_operation_name, graphql_operation_type,
                     COUNT(*) as hit_count,
                     MAX(CASE WHEN request_body_size > 0 THEN 1 ELSE 0 END) as has_request_body,
                     MAX(CASE WHEN response_body_size > 0 THEN 1 ELSE 0 END) as has_response_body,
                     GROUP_CONCAT(DISTINCT content_type) as content_types
                 FROM captures
-                GROUP BY host, path, method
+                GROUP BY host, path, method, status_code,
+                    graphql_operation_name, graphql_operation_type
                 ORDER BY host, path, method
             """
 
             return try Row.fetchAll(db, sql: sql).compactMap { row in
-                Self.parseRawEndpoint(from: row)
+                Self.parseRawRow(from: row)
             }
         }
     }
 
-    nonisolated private static func parseRawEndpoint(from row: Row) -> RawEndpointData? {
+    nonisolated private static func parseRawRow(from row: Row) -> RawRow? {
         guard let host: String = row["host"],
               let path: String = row["path"],
               let method: String = row["method"] else {
             return nil
         }
-
-        let statusCodesStr: String? = row["status_codes"]
-        let statusCodes = statusCodesStr?
-            .split(separator: ",")
-            .compactMap { Int(String($0).trimmingCharacters(in: .whitespaces)) } ?? []
 
         let contentTypesStr: String? = row["content_types"]
         let contentTypes = contentTypesStr?
@@ -68,11 +97,13 @@ final class APIMapBuilder: Sendable {
             .map { String($0).trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty } ?? []
 
-        return RawEndpointData(
+        return RawRow(
             host: host,
             path: path,
             method: method.uppercased(),
-            statusCodes: statusCodes,
+            statusCode: row["status_code"],
+            graphqlName: row["graphql_operation_name"],
+            graphqlType: row["graphql_operation_type"],
             hitCount: row["hit_count"] ?? 1,
             hasRequestBody: (row["has_request_body"] as Int? ?? 0) > 0,
             hasResponseBody: (row["has_response_body"] as Int? ?? 0) > 0,
@@ -143,35 +174,26 @@ final class APIMapBuilder: Sendable {
 
     // MARK: - Build Domain Tree
 
-    private func buildDomainTree(host: String, endpoints: [RawEndpointData]) -> APIDomain {
-        var normalizedGroups: [String: [NormalizedEndpointData]] = [:]
+    private static func buildDomain(
+        host: String,
+        rows: [RawRow],
+        classification: DomainClassification
+    ) -> APIDomain {
+        let normalizer = PathNormalizer.shared
+        var normalizedGroups: [String: [RawRow]] = [:]
         var allMethods: Set<String> = []
         var totalRequests = 0
 
-        for raw in endpoints {
+        for raw in rows {
             let (normalizedPath, _) = normalizer.normalizePath(raw.path)
             let key = "\(raw.method):\(normalizedPath)"
-
-            let normalized = NormalizedEndpointData(
-                normalizedPath: normalizedPath,
-                originalPath: raw.path,
-                method: raw.method,
-                statusCodes: raw.statusCodes,
-                hitCount: raw.hitCount,
-                hasRequestBody: raw.hasRequestBody,
-                hasResponseBody: raw.hasResponseBody,
-                contentTypes: raw.contentTypes
-            )
-
-            normalizedGroups[key, default: []].append(normalized)
+            normalizedGroups[key, default: []].append(raw)
             allMethods.insert(raw.method)
             totalRequests += raw.hitCount
         }
 
-        var mergedEndpoints: [APIEndpoint] = []
-        for (_, group) in normalizedGroups {
-            let merged = mergeEndpoints(group)
-            mergedEndpoints.append(merged)
+        let mergedEndpoints = normalizedGroups.values.compactMap { group in
+            mergeEndpoint(rows: group, normalizer: normalizer)
         }
 
         let rootNodes = buildPathTree(from: mergedEndpoints)
@@ -182,13 +204,17 @@ final class APIMapBuilder: Sendable {
             totalRequests: totalRequests,
             uniqueEndpoints: mergedEndpoints.count,
             methods: allMethods,
-            isExpanded: true
+            classification: classification,
+            category: classification == .thirdParty
+                ? PathNormalizer.thirdPartyCategory(for: host)
+                : nil,
+            isExpanded: classification == .target
         )
     }
 
     // MARK: - Build Path Tree
 
-    private func buildPathTree(from endpoints: [APIEndpoint]) -> [PathNode] {
+    private static func buildPathTree(from endpoints: [APIEndpoint]) -> [PathNode] {
         var rootDict: [String: PathNodeBuilder] = [:]
 
         for endpoint in endpoints {
@@ -206,7 +232,7 @@ final class APIMapBuilder: Sendable {
             .sorted { $0.segment.lowercased() < $1.segment.lowercased() }
     }
 
-    private func insertIntoTree(
+    private static func insertIntoTree(
         _ nodes: inout [String: PathNodeBuilder],
         segments: [String],
         endpoint: APIEndpoint,
@@ -236,113 +262,80 @@ final class APIMapBuilder: Sendable {
         }
     }
 
-    private func parseParameterType(_ placeholder: String) -> ParameterType {
+    private static func parseParameterType(_ placeholder: String) -> ParameterType {
         let inner = String(placeholder.dropFirst().dropLast())
         return ParameterType(rawValue: inner) ?? .unknown
     }
 
     // MARK: - Merge Endpoints
 
-    private func mergeEndpoints(_ endpoints: [NormalizedEndpointData]) -> APIEndpoint {
-        guard let first = endpoints.first else {
-            fatalError("Cannot merge empty endpoint list")
+    private static func mergeEndpoint(rows: [RawRow], normalizer: PathNormalizer) -> APIEndpoint? {
+        guard let first = rows.first else { return nil }
+        let (normalizedPath, _) = normalizer.normalizePath(first.path)
+
+        var statusCounts: [Int: Int] = [:]
+        var totalHits = 0
+        var examples: [String] = []
+        var hasReqBody = false
+        var hasRespBody = false
+        var contentTypes = Set<String>()
+
+        for row in rows {
+            totalHits += row.hitCount
+            if let code = row.statusCode {
+                statusCounts[code, default: 0] += row.hitCount
+            }
+            examples.append(row.path)
+            hasReqBody = hasReqBody || row.hasRequestBody
+            hasRespBody = hasRespBody || row.hasResponseBody
+            contentTypes.formUnion(row.contentTypes)
         }
 
-        guard endpoints.count > 1 else {
-            return APIEndpoint(
-                normalizedPath: first.normalizedPath,
-                method: first.method,
-                statusCodes: Set(first.statusCodes),
-                hitCount: first.hitCount,
-                examplePaths: [first.originalPath],
-                hasRequestBody: first.hasRequestBody,
-                hasResponseBody: first.hasResponseBody,
-                contentTypes: Set(first.contentTypes)
+        let uniqueExamples = Array(NSOrderedSet(array: examples).array.compactMap { $0 as? String }.prefix(3))
+
+        return APIEndpoint(
+            normalizedPath: normalizedPath,
+            method: first.method,
+            statusCodes: Set(statusCounts.keys),
+            statusCounts: statusCounts,
+            hitCount: totalHits,
+            examplePaths: uniqueExamples,
+            hasRequestBody: hasReqBody,
+            hasResponseBody: hasRespBody,
+            contentTypes: contentTypes,
+            graphqlOperations: buildGraphQLOperations(from: rows)
+        )
+    }
+
+    private static func buildGraphQLOperations(from rows: [RawRow]) -> [GraphQLOperation] {
+        let gqlRows = rows.filter { ($0.graphqlName?.isEmpty == false) }
+        guard !gqlRows.isEmpty else { return [] }
+
+        let grouped = Dictionary(grouping: gqlRows) { row in
+            "\(row.graphqlName ?? ""):\(row.graphqlType ?? "")"
+        }
+
+        let operations = grouped.values.compactMap { group -> GraphQLOperation? in
+            guard let first = group.first, let name = first.graphqlName else { return nil }
+            var statusCounts: [Int: Int] = [:]
+            var hits = 0
+            for row in group {
+                hits += row.hitCount
+                if let code = row.statusCode {
+                    statusCounts[code, default: 0] += row.hitCount
+                }
+            }
+            return GraphQLOperation(
+                name: name,
+                type: GraphQLOperationType(rawDatabaseValue: first.graphqlType),
+                hitCount: hits,
+                statusCounts: statusCounts
             )
         }
 
-        var allStatusCodes = Set<Int>()
-        var totalHits = 0
-        var allExamples: [String] = []
-        var hasReqBody = false
-        var hasRespBody = false
-        var allContentTypes = Set<String>()
-
-        for ep in endpoints {
-            allStatusCodes.formUnion(ep.statusCodes)
-            totalHits += ep.hitCount
-            allExamples.append(ep.originalPath)
-            hasReqBody = hasReqBody || ep.hasRequestBody
-            hasRespBody = hasRespBody || ep.hasResponseBody
-            allContentTypes.formUnion(ep.contentTypes)
+        return operations.sorted { lhs, rhs in
+            if lhs.hitCount != rhs.hitCount { return lhs.hitCount > rhs.hitCount }
+            return lhs.name < rhs.name
         }
-
-        let uniqueExamples = Array(Set(allExamples)).prefix(3)
-
-        return APIEndpoint(
-            normalizedPath: first.normalizedPath,
-            method: first.method,
-            statusCodes: allStatusCodes,
-            hitCount: totalHits,
-            examplePaths: Array(uniqueExamples),
-            hasRequestBody: hasReqBody,
-            hasResponseBody: hasRespBody,
-            contentTypes: allContentTypes
-        )
-    }
-}
-
-// MARK: - Supporting Types
-
-private struct RawEndpointData {
-    let host: String
-    let path: String
-    let method: String
-    let statusCodes: [Int]
-    let hitCount: Int
-    let hasRequestBody: Bool
-    let hasResponseBody: Bool
-    let contentTypes: [String]
-}
-
-private struct NormalizedEndpointData {
-    let normalizedPath: String
-    let originalPath: String
-    let method: String
-    let statusCodes: [Int]
-    let hitCount: Int
-    let hasRequestBody: Bool
-    let hasResponseBody: Bool
-    let contentTypes: [String]
-}
-
-private class PathNodeBuilder {
-    let segment: String
-    let isParameter: Bool
-    let parameterType: ParameterType?
-    var children: [String: PathNodeBuilder] = [:]
-    var endpoints: [APIEndpoint] = []
-
-    init(segment: String, isParameter: Bool, parameterType: ParameterType?) {
-        self.segment = segment
-        self.isParameter = isParameter
-        self.parameterType = parameterType
-    }
-
-    func build() -> PathNode {
-        let childNodes = children.values
-            .map { $0.build() }
-            .sorted { $0.segment.lowercased() < $1.segment.lowercased() }
-
-        let sortedEndpoints = endpoints.sorted { $0.method < $1.method }
-
-        return PathNode(
-            segment: segment,
-            isParameter: isParameter,
-            parameterType: parameterType,
-            children: childNodes,
-            endpoints: sortedEndpoints,
-            isExpanded: false
-        )
     }
 }
