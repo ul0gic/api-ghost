@@ -3,6 +3,9 @@ import SwiftUI
 // MARK: - Traffic Inspector View
 
 struct TrafficInspectorView: View {
+    let tabManager: BrowserTabManager?
+    let onCollapsePanel: (() -> Void)?
+
     @State private var trafficCapture = TrafficCapture.shared
     @State private var selectedCapture: Capture?
     @State private var inspectorWidth: CGFloat = Preferences.shared.inspectorPanelWidth
@@ -11,6 +14,7 @@ struct TrafficInspectorView: View {
     @State private var selectedDomainFilter: String?
     @State private var selectedMethodFilter: String?
     @State private var selectedStatusFilter: String?
+    @State private var selectedTabFilter: String?
     @State private var searchText: String = ""
 
     private let minimumInspectorWidth: CGFloat = 350
@@ -21,11 +25,14 @@ struct TrafficInspectorView: View {
         VStack(spacing: 0) {
             TrafficFilterBar(
                 domains: uniqueDomains,
+                tabOptions: tabOptions,
                 selectedDomain: $selectedDomainFilter,
                 selectedMethod: $selectedMethodFilter,
                 selectedStatus: $selectedStatusFilter,
+                selectedTab: $selectedTabFilter,
                 searchText: $searchText,
-                onClearFilters: clearFilters
+                onClearFilters: clearFilters,
+                onCollapsePanel: onCollapsePanel
             )
 
             Divider()
@@ -92,6 +99,11 @@ struct TrafficInspectorView: View {
         Array(Set(trafficCapture.recentCaptures.map { $0.host })).sorted()
     }
 
+    private var tabOptions: [(value: String, label: String)] {
+        guard let tabManager else { return [] }
+        return tabManager.tabs.map { ($0.id, $0.displayTitle) }
+    }
+
     private var filteredCaptures: [Capture] {
         var captures = trafficCapture.recentCaptures
 
@@ -101,6 +113,10 @@ struct TrafficInspectorView: View {
 
         if let method = selectedMethodFilter {
             captures = captures.filter { $0.method == method }
+        }
+
+        if let tabId = selectedTabFilter {
+            captures = captures.filter { $0.sourceTabId == tabId }
         }
 
         if let status = selectedStatusFilter {
@@ -136,6 +152,7 @@ struct TrafficInspectorView: View {
         selectedDomainFilter = nil
         selectedMethodFilter = nil
         selectedStatusFilter = nil
+        selectedTabFilter = nil
         searchText = ""
     }
 }
@@ -276,7 +293,7 @@ extension View {
 // MARK: - Preview
 
 #Preview {
-    TrafficInspectorView()
+    TrafficInspectorView(tabManager: nil, onCollapsePanel: nil)
         .preferredColorScheme(.dark)
         .frame(width: 1000, height: 600)
 }

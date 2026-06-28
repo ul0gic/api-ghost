@@ -1,172 +1,167 @@
 import WebKit
 import os
 
-private let logger = Logger(subsystem: "corelift.api-ghost", category: "BrowserViewCoordinator")
+private let logger = Logger(subsystem: "corelift.api-ghost", category: "BrowserCoordinator")
 
-// MARK: - BrowserView Coordinator
+// MARK: - Browser Coordinator
 
-extension BrowserView {
-    class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate, NSWindowDelegate {
-        var viewModel: BrowserViewModel
-        private var observations: [NSKeyValueObservation] = []
+final class BrowserCoordinator: NSObject, WKNavigationDelegate, WKUIDelegate, NSWindowDelegate {
+    var viewModel: BrowserViewModel
+    private var observations: [NSKeyValueObservation] = []
 
-        private var popupWebViews: [ObjectIdentifier: WKWebView] = [:]
+    private var popupWebViews: [ObjectIdentifier: WKWebView] = [:]
 
-        /// Holds references to popup windows to prevent deallocation
-        private var popupWindows: Set<NSWindow> = []
+    /// Holds references to popup windows to prevent deallocation
+    private var popupWindows: Set<NSWindow> = []
 
-        private var windowsBeingCleaned: Set<ObjectIdentifier> = []
+    private var windowsBeingCleaned: Set<ObjectIdentifier> = []
 
-        /// Holds a reference to the message handler to prevent deallocation
-        var messageHandler: JSMessageHandler?
+    init(viewModel: BrowserViewModel) {
+        self.viewModel = viewModel
+    }
 
-        init(viewModel: BrowserViewModel) {
-            self.viewModel = viewModel
+    deinit {
+        cleanupAllPopups()
+    }
+
+    // MARK: - Popup Cleanup
+
+    private func cleanupPopupWebView(_ webView: WKWebView, deferred: Bool = false) {
+        let cleanup = { [weak webView] in
+            guard let webView = webView else { return }
+            webView.stopLoading()
+            webView.loadHTMLString("", baseURL: nil)
+            webView.navigationDelegate = nil
+            webView.uiDelegate = nil
+            logger.info("Popup webview cleanup completed")
         }
 
-        deinit {
-            cleanupAllPopups()
+        if deferred {
+            DispatchQueue.main.async(execute: cleanup)
+        } else {
+            cleanup()
         }
+    }
 
-        // MARK: - Popup Cleanup
-
-        private func cleanupPopupWebView(_ webView: WKWebView, deferred: Bool = false) {
-            let cleanup = { [weak webView] in
-                guard let webView = webView else { return }
-                webView.stopLoading()
-                webView.loadHTMLString("", baseURL: nil)
-                webView.navigationDelegate = nil
-                webView.uiDelegate = nil
-                logger.info("Popup webview cleanup completed")
-            }
-
-            if deferred {
-                DispatchQueue.main.async(execute: cleanup)
-            } else {
-                cleanup()
-            }
+    private func cleanupAllPopups() {
+        for (_, webView) in popupWebViews {
+            cleanupPopupWebView(webView, deferred: false)
         }
+        popupWebViews.removeAll()
+        windowsBeingCleaned.removeAll()
 
-        private func cleanupAllPopups() {
-            for (_, webView) in popupWebViews {
-                cleanupPopupWebView(webView, deferred: false)
-            }
-            popupWebViews.removeAll()
-            windowsBeingCleaned.removeAll()
-
-            for window in popupWindows {
-                window.delegate = nil
-                window.orderOut(nil)
-            }
-            popupWindows.removeAll()
-        }
-
-        private func removePopupWindow(_ window: NSWindow, triggeredByWebKit: Bool) {
-            let windowID = ObjectIdentifier(window)
-
-            guard !windowsBeingCleaned.contains(windowID) else {
-                logger.debug("Skipping duplicate cleanup for window")
-                return
-            }
-            windowsBeingCleaned.insert(windowID)
-
-            if let webView = popupWebViews[windowID] {
-                cleanupPopupWebView(webView, deferred: triggeredByWebKit)
-                popupWebViews.removeValue(forKey: windowID)
-            }
-
+        for window in popupWindows {
             window.delegate = nil
-            popupWindows.remove(window)
+            window.orderOut(nil)
+        }
+        popupWindows.removeAll()
+    }
 
-            DispatchQueue.main.async { [weak self] in
-                self?.windowsBeingCleaned.remove(windowID)
-            }
+    private func removePopupWindow(_ window: NSWindow, triggeredByWebKit: Bool) {
+        let windowID = ObjectIdentifier(window)
+
+        guard !windowsBeingCleaned.contains(windowID) else {
+            logger.debug("Skipping duplicate cleanup for window")
+            return
+        }
+        windowsBeingCleaned.insert(windowID)
+
+        if let webView = popupWebViews[windowID] {
+            cleanupPopupWebView(webView, deferred: triggeredByWebKit)
+            popupWebViews.removeValue(forKey: windowID)
         }
 
-        // MARK: - NSWindowDelegate
+        window.delegate = nil
+        popupWindows.remove(window)
 
-        func windowWillClose(_ notification: Notification) {
-            guard let window = notification.object as? NSWindow else { return }
-            logger.info("windowWillClose called")
-            removePopupWindow(window, triggeredByWebKit: false)
+        DispatchQueue.main.async { [weak self] in
+            self?.windowsBeingCleaned.remove(windowID)
+        }
+    }
+
+    // MARK: - NSWindowDelegate
+
+    func windowWillClose(_ notification: Notification) {
+        guard let window = notification.object as? NSWindow else { return }
+        logger.info("windowWillClose called")
+        removePopupWindow(window, triggeredByWebKit: false)
+    }
+
+    // MARK: - WKUIDelegate (Popup Handling)
+
+    func webView(
+        _ webView: WKWebView,
+        createWebViewWith configuration: WKWebViewConfiguration,
+        for navigationAction: WKNavigationAction,
+        windowFeatures: WKWindowFeatures
+    ) -> WKWebView? {
+        guard let url = navigationAction.request.url else {
+            return nil
         }
 
-        // MARK: - WKUIDelegate (Popup Handling)
+        logger.info("Popup requested for: \(url.absoluteString)")
+        let popupWebView = WKWebView(frame: .zero, configuration: configuration)
+        popupWebView.navigationDelegate = self
+        popupWebView.uiDelegate = self
 
-        func webView(
-            _ webView: WKWebView,
-            createWebViewWith configuration: WKWebViewConfiguration,
-            for navigationAction: WKNavigationAction,
-            windowFeatures: WKWindowFeatures
-        ) -> WKWebView? {
-            guard let url = navigationAction.request.url else {
-                return nil
-            }
+        let popupWindow = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 500, height: 700),
+            styleMask: [.titled, .closable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        popupWindow.title = "Sign In"
+        popupWindow.contentView = popupWebView
+        popupWindow.center()
+        popupWindow.animationBehavior = .none
+        popupWindow.isReleasedWhenClosed = false
+        popupWindow.delegate = self
 
-            logger.info("Popup requested for: \(url.absoluteString)")
-            let popupWebView = WKWebView(frame: .zero, configuration: configuration)
-            popupWebView.navigationDelegate = self
-            popupWebView.uiDelegate = self
+        let windowID = ObjectIdentifier(popupWindow)
+        popupWebViews[windowID] = popupWebView
+        popupWindows.insert(popupWindow)
+        popupWindow.makeKeyAndOrderFront(nil)
 
-            let popupWindow = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 500, height: 700),
-                styleMask: [.titled, .closable, .resizable],
-                backing: .buffered,
-                defer: false
-            )
-            popupWindow.title = "Sign In"
-            popupWindow.contentView = popupWebView
-            popupWindow.center()
-            popupWindow.animationBehavior = .none
-            popupWindow.isReleasedWhenClosed = false
-            popupWindow.delegate = self
+        return popupWebView
+    }
 
-            let windowID = ObjectIdentifier(popupWindow)
-            popupWebViews[windowID] = popupWebView
-            popupWindows.insert(popupWindow)
-            popupWindow.makeKeyAndOrderFront(nil)
+    func webViewDidClose(_ webView: WKWebView) {
+        logger.info("webViewDidClose called - deferring window close")
+        var windowToClose: NSWindow?
+        var foundWindowID: ObjectIdentifier?
 
-            return popupWebView
-        }
-
-        func webViewDidClose(_ webView: WKWebView) {
-            logger.info("webViewDidClose called - deferring window close")
-            var windowToClose: NSWindow?
-            var foundWindowID: ObjectIdentifier?
-
-            for (windowID, storedWebView) in popupWebViews
-            where ObjectIdentifier(storedWebView) == ObjectIdentifier(webView) {
-                for window in popupWindows where ObjectIdentifier(window) == windowID {
-                    windowToClose = window
-                    foundWindowID = windowID
-                    break
-                }
+        for (windowID, storedWebView) in popupWebViews
+        where ObjectIdentifier(storedWebView) == ObjectIdentifier(webView) {
+            for window in popupWindows where ObjectIdentifier(window) == windowID {
+                windowToClose = window
+                foundWindowID = windowID
                 break
             }
+            break
+        }
 
-            guard let window = windowToClose, let windowID = foundWindowID else {
-                logger.info("webViewDidClose: window not found in tracking")
-                return
-            }
+        guard let window = windowToClose, let windowID = foundWindowID else {
+            logger.info("webViewDidClose: window not found in tracking")
+            return
+        }
 
-            guard !windowsBeingCleaned.contains(windowID) else {
-                logger.info("webViewDidClose: window already being cleaned up")
-                return
-            }
+        guard !windowsBeingCleaned.contains(windowID) else {
+            logger.info("webViewDidClose: window already being cleaned up")
+            return
+        }
 
-            DispatchQueue.main.async { [weak self, weak window] in
-                guard let self = self, let window = window else { return }
-                logger.info("Executing deferred window close")
-                self.removePopupWindow(window, triggeredByWebKit: true)
-                window.close()
-            }
+        DispatchQueue.main.async { [weak self, weak window] in
+            guard let self = self, let window = window else { return }
+            logger.info("Executing deferred window close")
+            self.removePopupWindow(window, triggeredByWebKit: true)
+            window.close()
         }
     }
 }
 
 // MARK: - JavaScript Dialog Handling
 
-extension BrowserView.Coordinator {
+extension BrowserCoordinator {
     func webView(
         _ webView: WKWebView,
         runJavaScriptAlertPanelWithMessage message: String,
@@ -224,7 +219,7 @@ extension BrowserView.Coordinator {
 
 // MARK: - Navigation Observation
 
-extension BrowserView.Coordinator {
+extension BrowserCoordinator {
     func observeWebView(_ webView: WKWebView) {
         observations = [
             webView.observe(\.canGoBack) { [weak self] webView, _ in
@@ -253,7 +248,7 @@ extension BrowserView.Coordinator {
 
 // MARK: - WKNavigationDelegate
 
-extension BrowserView.Coordinator {
+extension BrowserCoordinator {
     func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
         DispatchQueue.main.async {
             self.viewModel.isLoading = true

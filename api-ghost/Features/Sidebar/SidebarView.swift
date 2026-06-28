@@ -2,42 +2,48 @@ import SwiftUI
 
 struct SidebarView: View {
     @State private var appState = AppState.shared
+    @Environment(\.accessibilityReduceMotion)
+    private var reduceMotion
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            SidebarSection(title: "NAVIGATION") {
-                VStack(alignment: .leading, spacing: 4) {
-                    ForEach(NavigationTab.allCases) { tab in
-                        NavigationButton(
-                            tab: tab,
-                            isSelected: appState.selectedTab == tab
-                        ) {
-                            withAnimation(.easeInOut(duration: 0.15)) {
-                                appState.selectedTab = tab
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                SidebarSection(title: "NAVIGATION") {
+                    VStack(alignment: .leading, spacing: 4) {
+                        ForEach(NavigationTab.allCases) { tab in
+                            NavigationButton(
+                                tab: tab,
+                                isSelected: appState.selectedTab == tab
+                            ) {
+                                selectTab(tab)
                             }
                         }
                     }
                 }
+
+                Divider()
+                    .background(Color.ghostBorder)
+
+                SidebarSection(title: "STATS") {
+                    StatsView()
+                }
             }
-
-            Divider()
-                .background(Color.ghostBorder)
-
-            SidebarSection(title: "STATS") {
-                StatsView()
-            }
-
-            Divider()
-                .background(Color.ghostBorder)
-
-            SidebarSection(title: "QUICK ACTIONS") {
-                CompactActionsView()
-            }
-
-            Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.ghostSurface)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            SidebarFooterView()
+        }
+    }
+
+    private func selectTab(_ tab: NavigationTab) {
+        if reduceMotion {
+            appState.selectedTab = tab
+        } else {
+            withAnimation(.easeInOut(duration: 0.15)) {
+                appState.selectedTab = tab
+            }
+        }
     }
 }
 
@@ -86,31 +92,38 @@ struct NavigationButton: View {
     }
 }
 
-// MARK: - Compact Actions View
+// MARK: - Sidebar Footer
 
-struct CompactActionsView: View {
+struct SidebarFooterView: View {
     @State private var showWipeConfirmation: Bool = false
     @State private var showExportDialog: Bool = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                CompactActionButton(
-                    title: "Wipe",
-                    icon: "trash",
-                    style: .destructive
-                ) {
-                    showWipeConfirmation = true
-                }
-
-                CompactActionButton(
-                    title: "Export",
-                    icon: "square.and.arrow.up",
-                    style: .primary
-                ) {
-                    showExportDialog = true
-                }
+        VStack(spacing: 8) {
+            SidebarFooterButton(
+                title: "Wipe Session",
+                icon: "trash",
+                role: .destructive
+            ) {
+                showWipeConfirmation = true
             }
+
+            SidebarFooterButton(
+                title: "Export DB",
+                icon: "arrow.up",
+                role: .export
+            ) {
+                showExportDialog = true
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity)
+        .background(Color.ghostSurface)
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(Color.ghostBorder)
+                .frame(height: 1)
         }
         .sheet(isPresented: $showWipeConfirmation) {
             WipeConfirmationView()
@@ -121,32 +134,37 @@ struct CompactActionsView: View {
     }
 }
 
-// MARK: - Compact Action Button
+// MARK: - Sidebar Footer Button
 
-struct CompactActionButton: View {
+enum SidebarFooterButtonRole {
+    case destructive
+    case export
+}
+
+struct SidebarFooterButton: View {
     let title: String
     let icon: String
-    let style: ActionButtonStyle
+    let role: SidebarFooterButtonRole
     let action: () -> Void
 
     @State private var isHovered: Bool = false
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 4) {
+            HStack(spacing: 6) {
                 Image(systemName: icon)
                     .font(.system(size: 11))
                 Text(title)
-                    .font(.system(size: 11))
+                    .font(.system(size: 12))
             }
             .foregroundColor(foregroundColor)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 5)
             .frame(maxWidth: .infinity)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
             .background(backgroundColor)
-            .cornerRadius(4)
+            .clipShape(RoundedRectangle(cornerRadius: 5))
             .overlay(
-                RoundedRectangle(cornerRadius: 4)
+                RoundedRectangle(cornerRadius: 5)
                     .stroke(borderColor, lineWidth: 1)
             )
         }
@@ -157,35 +175,29 @@ struct CompactActionButton: View {
     }
 
     private var foregroundColor: Color {
-        switch style {
-        case .primary:
-            return isHovered ? .ghostBase : .ghostAccent
-        case .secondary:
-            return .ghostTextSecondary
+        switch role {
         case .destructive:
             return isHovered ? .white : .ghostError
+        case .export:
+            return isHovered ? .ghostBase : .ghostAccent
         }
     }
 
     private var backgroundColor: Color {
-        switch style {
-        case .primary:
-            return isHovered ? .ghostAccent : .clear
-        case .secondary:
-            return isHovered ? .ghostSurfaceRaised : .clear
+        switch role {
         case .destructive:
             return isHovered ? .ghostError : .clear
+        case .export:
+            return isHovered ? .ghostAccent : .ghostAccentMuted
         }
     }
 
     private var borderColor: Color {
-        switch style {
-        case .primary:
-            return .ghostAccent
-        case .secondary:
-            return .ghostBorder
+        switch role {
         case .destructive:
             return .ghostError
+        case .export:
+            return .ghostAccent
         }
     }
 }
@@ -214,5 +226,5 @@ struct SidebarSection<Content: View>: View {
 #Preview {
     SidebarView()
         .preferredColorScheme(.dark)
-        .frame(width: 180, height: 600)
+        .frame(width: 200, height: 600)
 }

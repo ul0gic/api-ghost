@@ -4,11 +4,14 @@ import SwiftUI
 
 struct TrafficFilterBar: View {
     let domains: [String]
+    var tabOptions: [(value: String, label: String)] = []
     @Binding var selectedDomain: String?
     @Binding var selectedMethod: String?
     @Binding var selectedStatus: String?
+    @Binding var selectedTab: String?
     @Binding var searchText: String
     let onClearFilters: () -> Void
+    var onCollapsePanel: (() -> Void)?
 
     @FocusState private var isSearchFocused: Bool
 
@@ -34,6 +37,14 @@ struct TrafficFilterBar: View {
                 selection: $selectedStatus,
                 options: statusCategories.map { ($0, $0) }
             )
+
+            if !tabOptions.isEmpty {
+                FilterDropdown(
+                    title: "Tab",
+                    selection: $selectedTab,
+                    options: tabOptions
+                )
+            }
 
             HStack(spacing: 6) {
                 Image(systemName: "magnifyingglass")
@@ -87,6 +98,19 @@ struct TrafficFilterBar: View {
                 }
                 .buttonStyle(.plain)
             }
+
+            if let onCollapsePanel {
+                Button(action: onCollapsePanel) {
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.ghostTextSecondary)
+                        .frame(width: 24, height: 24)
+                        .background(Color.ghostSurfaceRaised)
+                        .cornerRadius(4)
+                }
+                .buttonStyle(.plain)
+                .help("Collapse traffic panel")
+            }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
@@ -97,7 +121,11 @@ struct TrafficFilterBar: View {
     }
 
     private var hasActiveFilters: Bool {
-        selectedDomain != nil || selectedMethod != nil || selectedStatus != nil || !searchText.isEmpty
+        selectedDomain != nil
+            || selectedMethod != nil
+            || selectedStatus != nil
+            || selectedTab != nil
+            || !searchText.isEmpty
     }
 }
 
@@ -123,7 +151,7 @@ struct FilterDropdown: View {
             }
         } label: {
             HStack(spacing: 6) {
-                Text(selection ?? title)
+                Text(selectionLabel)
                     .font(.system(size: 12))
                     .foregroundColor(selection != nil ? .ghostAccent : .ghostTextSecondary)
 
@@ -143,6 +171,11 @@ struct FilterDropdown: View {
         .menuStyle(.borderlessButton)
         .fixedSize()
     }
+
+    private var selectionLabel: String {
+        guard let selection else { return title }
+        return options.first { $0.value == selection }?.label ?? selection
+    }
 }
 
 // MARK: - Preview
@@ -153,8 +186,11 @@ struct FilterDropdown: View {
         selectedDomain: .constant(nil),
         selectedMethod: .constant(nil),
         selectedStatus: .constant(nil),
-        searchText: .constant("")
-    ) {}
+        selectedTab: .constant(nil),
+        searchText: .constant(""),
+        onClearFilters: {},
+        onCollapsePanel: nil
+    )
     .preferredColorScheme(.dark)
     .frame(width: 800)
 }

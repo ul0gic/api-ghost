@@ -4,13 +4,13 @@ import SwiftUI
 
 struct ContentAreaView: View {
     @State private var appState = AppState.shared
-    @State private var browserViewModel = BrowserViewModel()
+    @State private var tabManager = BrowserTabManager()
 
     var body: some View {
         Group {
             switch appState.selectedTab {
             case .browser:
-                BrowserWithTrafficView(viewModel: browserViewModel)
+                BrowserWithTrafficView(tabManager: tabManager)
             case .map:
                 MapContentView()
             case .sql:
@@ -27,48 +27,51 @@ struct ContentAreaView: View {
 // MARK: - Browser With Traffic View
 
 struct BrowserWithTrafficView: View {
-    @Bindable var viewModel: BrowserViewModel
+    @Bindable var tabManager: BrowserTabManager
     @State private var splitRatio = CGFloat(Preferences.shared.browserTrafficSplitRatio)
+
+    @State private var isPanelCollapsed: Bool = Preferences.shared.bottomPanelCollapsed
+    @Environment(\.accessibilityReduceMotion)
+    private var reduceMotion
 
     private let minimumSectionHeight: CGFloat = 150
     private let dividerHeight: CGFloat = 8
+    private let peekStripHeight: CGFloat = 28
     private let minimumTotalHeight: CGFloat = 400
 
     var body: some View {
         GeometryReader { geometry in
             let totalHeight = max(minimumTotalHeight, geometry.size.height)
-
             let clampedRatio = min(0.8, max(0.2, splitRatio))
-
             let availableHeight = totalHeight - dividerHeight
             let browserHeight = max(minimumSectionHeight, availableHeight * clampedRatio)
             let trafficHeight = max(minimumSectionHeight, availableHeight - browserHeight)
-
             let safeMinimumRatio = totalHeight > 0 ? minimumSectionHeight / totalHeight : 0.2
 
             VStack(spacing: 0) {
-                VStack(spacing: 0) {
-                    NavigationBar(viewModel: viewModel)
+                browserSection
+                    .frame(height: isPanelCollapsed ? totalHeight - peekStripHeight : browserHeight)
+                    .frame(minHeight: minimumSectionHeight)
 
-                    Divider()
-                        .background(Color.ghostBorder)
+                if isPanelCollapsed {
+                    TrafficPanelPeekStrip(onExpand: setPanelExpanded)
+                        .frame(height: peekStripHeight)
+                } else {
+                    ResizableDivider(
+                        splitRatio: $splitRatio,
+                        totalHeight: totalHeight,
+                        minimumRatio: safeMinimumRatio
+                    )
 
-                    BrowserView(viewModel: viewModel)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                }
-                .frame(height: browserHeight)
-                .frame(minHeight: minimumSectionHeight)
-
-                ResizableDivider(
-                    splitRatio: $splitRatio,
-                    totalHeight: totalHeight,
-                    minimumRatio: safeMinimumRatio
-                )
-
-                TrafficInspectorView()
+                    TrafficInspectorView(
+                        tabManager: tabManager,
+                        onCollapsePanel: setPanelCollapsed
+                    )
                     .frame(height: trafficHeight)
                     .frame(minHeight: minimumSectionHeight)
+                }
             }
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: isPanelCollapsed)
         }
         .frame(minHeight: minimumTotalHeight)
         .onChange(of: splitRatio) { _, newValue in
@@ -81,6 +84,35 @@ struct BrowserWithTrafficView: View {
                 splitRatio = min(0.8, max(0.2, storedRatio))
             }
         }
+    }
+
+    private var browserSection: some View {
+        VStack(spacing: 0) {
+            if let activeTab = tabManager.activeTab {
+                NavigationBar(viewModel: activeTab.viewModel)
+
+                Divider()
+                    .background(Color.ghostBorder)
+            }
+
+            BrowserTabBar(manager: tabManager)
+
+            if let activeTab = tabManager.activeTab {
+                BrowserWebViewHost(webView: activeTab.webView)
+                    .id(activeTab.id)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+    }
+
+    private func setPanelCollapsed() {
+        isPanelCollapsed = true
+        Preferences.shared.bottomPanelCollapsed = true
+    }
+
+    private func setPanelExpanded() {
+        isPanelCollapsed = false
+        Preferences.shared.bottomPanelCollapsed = false
     }
 }
 

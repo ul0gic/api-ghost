@@ -12,6 +12,7 @@ final class Preferences {
         static let inspectorPanelHeight = "inspectorPanelHeight"
         static let inspectorPanelWidth = "inspectorPanelWidth"
         static let inspectorPanelCollapsed = "inspectorPanelCollapsed"
+        static let bottomPanelCollapsed = "bottomPanelCollapsed"
         static let browserTrafficSplitRatio = "browserTrafficSplitRatio"
 
         static let filteringEnabled = "filteringEnabled"
@@ -70,6 +71,11 @@ final class Preferences {
     var inspectorPanelCollapsed: Bool {
         get { defaults.bool(forKey: Keys.inspectorPanelCollapsed) }
         set { defaults.set(newValue, forKey: Keys.inspectorPanelCollapsed) }
+    }
+
+    var bottomPanelCollapsed: Bool {
+        get { defaults.bool(forKey: Keys.bottomPanelCollapsed) }
+        set { defaults.set(newValue, forKey: Keys.bottomPanelCollapsed) }
     }
 
     var browserTrafficSplitRatio: Double {
