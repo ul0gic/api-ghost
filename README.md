@@ -64,16 +64,18 @@ gh attestation verify APIGhost.dmg --repo ul0gic/api-ghost
 ## How it works
 
 ```mermaid
-flowchart LR
+flowchart TB
     T[Target site] --> WV[Embedded WKWebView]
     WV --> JS["JS interception<br/>(fetch / XHR / WS / SSE)"]
     WV --> NP["Network proxy + TLS MITM<br/>via SwiftMITM"]
     JS --> CAP[Capture pipeline<br/>+ noise filter]
     NP --> CAP
     CAP --> DB[(Schemaless SQLite<br/>GRDB)]
-    DB --> UI[In-app explore<br/>API Map · DB Explorer · Inspector]
+    DB --> UI["In-app explore<br/>API Map · DB Explorer · Inspector"]
     DB --> EX[Export<br/>SQLite / JSON / HAR]
     EX --> LLM[LLM analysis<br/>API reverse engineering]
+
+    classDef default fill:#00D9FF,stroke:#00B8D9,color:#0A0A0A,stroke-width:1px;
 ```
 
 **Schemaless SQLite.** Captures are stored raw. Request, response, headers, bodies, timing, and metadata all live in one flat, queryable table. There's no rigid ORM shape to fight, and the single `.sqlite` file is the export, so handing it to an LLM (or `sqlite3`) needs zero conversion.
