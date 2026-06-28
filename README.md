@@ -31,10 +31,29 @@ APIGhost is a **focused, passive** API reconnaissance tool. You browse a site in
 <img src="docs/assets/database-explorer.webp" alt="Database Explorer: schema, SQL editor, response inspector" width="49%" />
 </div>
 
+## Install
+
+Download the latest DMG and drag APIGhost into Applications:
+
+```bash
+curl -L -o APIGhost.dmg \
+  https://github.com/ul0gic/api-ghost/releases/latest/download/APIGhost.dmg
+open APIGhost.dmg
+```
+
+Or grab it from the [Releases page](https://github.com/ul0gic/api-ghost/releases/latest). The app is signed with a Developer ID and notarized by Apple, so it opens without Gatekeeper warnings. Requires **macOS 26.1+**.
+
+Optionally confirm the DMG was built by this repo's release pipeline:
+
+```bash
+gh attestation verify APIGhost.dmg --repo ul0gic/api-ghost
+```
+
 ## Features
 
 - **Embedded browser capture.** Full WKWebView navigation. Log in once, and auth persists across wipes.
 - **Real-time interception.** Fetch, XHR, WebSocket, and SSE captured as you browse.
+- **Network proxy mode.** An optional TLS MITM proxy captures what page JS can't see: service-worker traffic, browser-managed headers, and raw bytes on the wire.
 - **API Map.** A tree view with path-pattern detection that normalizes UUIDs, IDs, and hashes.
 - **Database Explorer.** A SQL editor over the live capture database, with quick-query chips.
 - **Request and response inspector.** Headers, bodies, and timing. Copy as cURL or JSON.
@@ -48,9 +67,9 @@ APIGhost is a **focused, passive** API reconnaissance tool. You browse a site in
 flowchart LR
     T[Target site] --> WV[Embedded WKWebView]
     WV --> JS["JS interception<br/>(fetch / XHR / WS / SSE)"]
-    WV -.-> NP["Network proxy + TLS MITM<br/>via SwiftMITM · v2, in progress"]
+    WV --> NP["Network proxy + TLS MITM<br/>via SwiftMITM"]
     JS --> CAP[Capture pipeline<br/>+ noise filter]
-    NP -.-> CAP
+    NP --> CAP
     CAP --> DB[(Schemaless SQLite<br/>GRDB)]
     DB --> UI[In-app explore<br/>API Map · DB Explorer · Inspector]
     DB --> EX[Export<br/>SQLite / JSON / HAR]
@@ -59,7 +78,7 @@ flowchart LR
 
 **Schemaless SQLite.** Captures are stored raw. Request, response, headers, bodies, timing, and metadata all live in one flat, queryable table. There's no rigid ORM shape to fight, and the single `.sqlite` file is the export, so handing it to an LLM (or `sqlite3`) needs zero conversion.
 
-**Dual interception (planned).** v1 ships JS interception, which needs zero setup and no certificate. v2 adds a network proxy with TLS MITM, a local `SwiftMITM` engine over SwiftNIO routed through `WKWebsiteDataStore.proxyConfigurations`. It captures what page-context JS can't see: service-worker traffic, browser-managed headers, and raw bytes on the wire.
+**Dual interception.** JS interception needs zero setup and no certificate. Network-proxy mode adds TLS MITM — a local `SwiftMITM` engine over SwiftNIO, routed through `WKWebsiteDataStore.proxyConfigurations` — and captures what page-context JS can't see: service-worker traffic, browser-managed headers, and raw bytes on the wire.
 
 ## Why: security use cases
 
@@ -77,21 +96,17 @@ APIGhost shines anywhere you need to know *exactly* what an app talks to. The ex
 - Generate ground-truth API documentation from real client behavior.
 - Validate that sensitive fields never cross the wire to the browser.
 
-## Build from source
+## Contributing
 
-Requires **macOS 26.1+** and **Xcode 26.2+**.
+Building from source requires **macOS 26.1+** and **Xcode 26.2+**:
 
 ```bash
 git clone https://github.com/ul0gic/api-ghost.git
 cd api-ghost
 open api-ghost.xcodeproj   # build & run the `api-ghost` scheme
-
-# headless build (skips signing)
-xcodebuild build -project api-ghost.xcodeproj -scheme api-ghost \
-  -destination 'platform=macOS' -configuration Release CODE_SIGNING_ALLOWED=NO
 ```
 
-Dependencies resolve automatically via Swift Package Manager (GRDB; the SwiftNIO stack for v2 network mode).
+Dependencies resolve automatically via Swift Package Manager.
 
 ## License
 
