@@ -46,7 +46,7 @@ final class TestOriginServer {
     }
 }
 
-private final class StreamingResponder: ChannelDuplexHandler {
+final class StreamingResponder: ChannelDuplexHandler {
     typealias InboundIn = HTTP2Frame.FramePayload
     typealias OutboundIn = HTTP2Frame.FramePayload
     typealias OutboundOut = HTTP2Frame.FramePayload

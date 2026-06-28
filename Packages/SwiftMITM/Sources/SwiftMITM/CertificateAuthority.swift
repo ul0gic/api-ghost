@@ -10,22 +10,71 @@ public struct MintedIdentity: Sendable {
     public let privateKey: NIOSSLPrivateKeySource
 }
 
+/// Exported CA material: `privateKeyPEM` is `P256.Signing.PrivateKey.pemRepresentation`, the form Keychain persists.
+public struct GeneratedAuthority: Sendable {
+    public let authority: CertificateAuthority
+    public let privateKeyPEM: String
+    public let certificatePEM: String
+}
+
 public final class CertificateAuthority: Sendable {
+    public static let defaultCommonName = "APIGhost MITM Root"
+
     public let caCertificate: Certificate
     public let caCertificatePEM: String
 
     private let caPrivateKey: Certificate.PrivateKey
     private let leafCache: NIOLockedValueBox<[String: MintedIdentity]>
 
-    public init(commonName: String = "APIGhost MITM Root") throws {
+    private init(caKey: P256.Signing.PrivateKey, certificate: Certificate) throws {
+        self.caCertificate = certificate
+        self.caPrivateKey = Certificate.PrivateKey(caKey)
+        self.caCertificatePEM = try certificate.serializeAsPEM().pemString
+        self.leafCache = NIOLockedValueBox([:])
+    }
+
+    public convenience init(commonName: String = CertificateAuthority.defaultCommonName) throws {
         let caKey = P256.Signing.PrivateKey()
+        try self.init(caKey: caKey, certificate: Self.makeRootCertificate(key: caKey, commonName: commonName))
+    }
+
+    /// Adopts existing CA material; `privateKeyPEM` is a P256 key in `P256.Signing.PrivateKey.pemRepresentation` form.
+    /// A nil `certificatePEM` re-derives the root cert from the key (fresh serial, same key + subject).
+    public convenience init(privateKeyPEM: String, certificatePEM: String? = nil) throws {
+        let caKey = try P256.Signing.PrivateKey(pemRepresentation: privateKeyPEM)
+        let certificate =
+            try certificatePEM.map { try Certificate(pemEncoded: $0) }
+            ?? Self.makeRootCertificate(key: caKey, commonName: Self.defaultCommonName)
+        try self.init(caKey: caKey, certificate: certificate)
+    }
+
+    /// Creates a fresh CA and exports its material for persistence (P256 key PEM + cert PEM).
+    public static func generate(
+        commonName: String = CertificateAuthority.defaultCommonName
+    ) throws -> GeneratedAuthority {
+        let caKey = P256.Signing.PrivateKey()
+        let authority = try CertificateAuthority(
+            caKey: caKey,
+            certificate: Self.makeRootCertificate(key: caKey, commonName: commonName)
+        )
+        return GeneratedAuthority(
+            authority: authority,
+            privateKeyPEM: caKey.pemRepresentation,
+            certificatePEM: authority.caCertificatePEM
+        )
+    }
+
+    private static func makeRootCertificate(
+        key caKey: P256.Signing.PrivateKey,
+        commonName: String
+    ) throws -> Certificate {
         let privateKey = Certificate.PrivateKey(caKey)
         let name = try DistinguishedName {
             CommonName(commonName)
             OrganizationName("APIGhost")
         }
         let now = Date()
-        let certificate = try Certificate(
+        return try Certificate(
             version: .v3,
             serialNumber: Certificate.SerialNumber(),
             publicKey: Certificate.PublicKey(caKey.publicKey),
@@ -39,10 +88,6 @@ public final class CertificateAuthority: Sendable {
             },
             issuerPrivateKey: privateKey
         )
-        self.caCertificate = certificate
-        self.caPrivateKey = privateKey
-        self.caCertificatePEM = try certificate.serializeAsPEM().pemString
-        self.leafCache = NIOLockedValueBox([:])
     }
 
     public func leaf(forHost host: String) throws -> MintedIdentity {

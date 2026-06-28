@@ -2,42 +2,14 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <!--
-        App Sandbox DISABLED for proxy/MITM functionality.
-
-        Reason: Proxy tools like Proxyman are NOT sandboxed because they need:
-        - System keychain access for certificate trust installation
-        - Unrestricted network access for MITM proxy
-        - Process management for WebKit
-        - AppleScript execution for privilege escalation
-
-        The WebKit entitlement errors (com.apple.runningboard.assertions.webkit)
-        also suggest sandboxed apps have issues with WKWebView proxy configuration
-        on macOS 26+.
-    -->
+    <!-- TLS-MITM proxy needs raw network interception and system keychain trust installation; the App Sandbox grants neither. -->
     <key>com.apple.security.app-sandbox</key>
     <false/>
 
-    <!--
-        Network entitlements kept for completeness, though they may not be
-        strictly required without sandbox. They don't hurt and document intent.
-    -->
-    <!-- Network client capability for outgoing connections -->
-    <key>com.apple.security.network.client</key>
-    <true/>
-
-    <!-- Network server capability for the proxy server -->
-    <key>com.apple.security.network.server</key>
-    <true/>
-
-    <!-- Keychain access groups for certificate storage -->
+    <!-- Stable keychain identity for the network-mode CA private key (PEM) and root certificate under hardened runtime. -->
     <key>keychain-access-groups</key>
     <array>
         <string>$(AppIdentifierPrefix)corelift.api-ghost</string>
     </array>
-
-    <!-- Allow Apple Events for AppleScript with administrator privileges -->
-    <key>com.apple.security.automation.apple-events</key>
-    <true/>
 </dict>
 </plist>

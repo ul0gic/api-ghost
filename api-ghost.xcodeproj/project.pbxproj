@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		C02D8E32BCD4D0628BA6F769 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 09014FD7F67FEF2143CB1C46 /* GRDB */; };
 		EF9EAE922EF2104B000E566D /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = EF9EAE912EF2104B000E566D /* GRDB */; };
+		AAB100000000000000000003 /* SwiftMITM in Frameworks */ = {isa = PBXBuildFile; productRef = AAB100000000000000000002 /* SwiftMITM */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -67,12 +68,21 @@
 			buildActionMask = 2147483647;
 			files = (
 				EF9EAE922EF2104B000E566D /* GRDB in Frameworks */,
+				AAB100000000000000000003 /* SwiftMITM in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		D1C0F16000000000000C0002 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				D1C0F16000000000000C0001 /* Shared.xcconfig */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
 		EF9EAE752EF2104A000E566D = {
 			isa = PBXGroup;
 			children = (
@@ -81,14 +91,6 @@
 				94F13D8DFC8B39C107CF5727 /* api-ghostTests */,
 				EF9EAE7F2EF2104A000E566D /* Products */,
 			);
-			sourceTree = "<group>";
-		};
-		D1C0F16000000000000C0002 /* Config */ = {
-			isa = PBXGroup;
-			children = (
-				D1C0F16000000000000C0001 /* Shared.xcconfig */,
-			);
-			path = Config;
 			sourceTree = "<group>";
 		};
 		EF9EAE7F2EF2104A000E566D /* Products */ = {
@@ -145,6 +147,7 @@
 			name = "api-ghost";
 			packageProductDependencies = (
 				EF9EAE912EF2104B000E566D /* GRDB */,
+				AAB100000000000000000002 /* SwiftMITM */,
 			);
 			productName = "api-ghost";
 			productReference = EF9EAE7E2EF2104A000E566D /* APIGhost.app */;
@@ -180,6 +183,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				EF9EAE932EF2104B000E566D /* XCRemoteSwiftPackageReference "GRDB.swift" */,
+				AAB100000000000000000001 /* XCLocalSwiftPackageReference "Packages/SwiftMITM" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = EF9EAE7F2EF2104A000E566D /* Products */;
@@ -241,7 +245,8 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;				GENERATE_INFOPLIST_FILE = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 26.1;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "corelift.api-ghost.tests";
@@ -291,7 +296,8 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEAD_CODE_STRIPPING = YES;
-				DEBUG_INFORMATION_FORMAT = dwarf;				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
@@ -356,7 +362,8 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEAD_CODE_STRIPPING = YES;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";				ENABLE_NS_ASSERTIONS = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
@@ -387,7 +394,8 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEAD_CODE_STRIPPING = YES;				ENABLE_APP_SANDBOX = NO;
+				DEAD_CODE_STRIPPING = YES;
+				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
@@ -424,7 +432,8 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEAD_CODE_STRIPPING = YES;				ENABLE_APP_SANDBOX = NO;
+				DEAD_CODE_STRIPPING = YES;
+				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
@@ -457,7 +466,8 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;				GENERATE_INFOPLIST_FILE = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 26.1;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "corelift.api-ghost.tests";
@@ -503,6 +513,13 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCLocalSwiftPackageReference section */
+		AAB100000000000000000001 /* XCLocalSwiftPackageReference "Packages/SwiftMITM" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "Packages/SwiftMITM";
+		};
+/* End XCLocalSwiftPackageReference section */
+
 /* Begin XCRemoteSwiftPackageReference section */
 		EF9EAE932EF2104B000E566D /* XCRemoteSwiftPackageReference "GRDB.swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
@@ -524,6 +541,10 @@
 			isa = XCSwiftPackageProductDependency;
 			package = EF9EAE932EF2104B000E566D /* XCRemoteSwiftPackageReference "GRDB.swift" */;
 			productName = GRDB;
+		};
+		AAB100000000000000000002 /* SwiftMITM */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SwiftMITM;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

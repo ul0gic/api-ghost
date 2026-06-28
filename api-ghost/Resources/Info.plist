@@ -37,9 +37,5 @@
     <!-- Supports Automatic Graphics Switching -->
     <key>NSSupportsAutomaticGraphicsSwitching</key>
     <true/>
-
-    <!-- Apple Events Usage Description (for automation/AppleScript) -->
-    <key>NSAppleEventsUsageDescription</key>
-    <string>APIGhost needs permission to install certificates for HTTPS traffic capture.</string>
 </dict>
 </plist>

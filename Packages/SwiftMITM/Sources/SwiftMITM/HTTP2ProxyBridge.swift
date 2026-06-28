@@ -85,37 +85,11 @@ public final class HTTP2ProxyBridge: Sendable {
         inbound: Channel,
         upstreamMux: NIOHTTP2Handler.StreamMultiplexer
     ) -> EventLoopFuture<Void> {
-        let loop = inbound.eventLoop
-        let requestID = UUID()
-        let authority = "\(upstream.host):\(upstream.port)"
-        let pair = NIOLoopBound(GlueHandler.matchedPair(), eventLoop: loop)
-        let sink = sink
-
-        return upstreamMux.createStreamChannel { upstreamStream in
-            upstreamStream.eventLoop.makeCompletedFuture {
-                try upstreamStream.pipeline.syncOperations.addHandlers([
-                    HTTP2CaptureTapHandler(
-                        direction: .response,
-                        requestID: requestID,
-                        authority: authority,
-                        sink: sink
-                    ),
-                    pair.value.1
-                ])
-            }
-        }
-        .flatMap { _ in
-            loop.makeCompletedFuture {
-                try inbound.pipeline.syncOperations.addHandlers([
-                    HTTP2CaptureTapHandler(
-                        direction: .request,
-                        requestID: requestID,
-                        authority: authority,
-                        sink: sink
-                    ),
-                    pair.value.0
-                ])
-            }
-        }
+        H2StreamGlue.glue(
+            inboundStream: inbound,
+            upstreamMux: upstreamMux,
+            authority: "\(upstream.host):\(upstream.port)",
+            sink: sink
+        )
     }
 }
