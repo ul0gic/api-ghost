@@ -5,9 +5,14 @@ import os
 nonisolated private let logger = Logger(subsystem: "corelift.api-ghost", category: "DatabaseManager")
 
 nonisolated final class DatabaseManager: Sendable {
+    enum StorageLocation: Sendable {
+        case applicationSupport
+        case file(path: String)
+    }
+
     // MARK: - Singleton
 
-    static let shared = DatabaseManager()
+    static let shared = DatabaseManager(location: .applicationSupport)
 
     // MARK: - Properties
 
@@ -17,13 +22,13 @@ nonisolated final class DatabaseManager: Sendable {
 
     // MARK: - Initialization
 
-    private init() {
+    init(location: StorageLocation = .applicationSupport) {
         var tempQueue: DatabaseQueue?
         var tempPath: String?
         var tempError: Error?
 
         do {
-            let (queue, path) = try DatabaseManager.createDatabase()
+            let (queue, path) = try DatabaseManager.createDatabase(at: location)
             tempQueue = queue
             tempPath = path
 
@@ -135,7 +140,36 @@ nonisolated final class DatabaseManager: Sendable {
 
     // MARK: - Private Methods
 
-    private static func createDatabase() throws -> (DatabaseQueue, String) {
+    private static func createDatabase(at location: StorageLocation) throws -> (DatabaseQueue, String) {
+        let dbPath = try resolveDatabasePath(for: location)
+
+        var configuration = Configuration()
+        configuration.prepareDatabase { db in
+            try db.execute(sql: "PRAGMA foreign_keys = ON")
+        }
+
+        let queue = try DatabaseQueue(path: dbPath, configuration: configuration)
+
+        return (queue, dbPath)
+    }
+
+    private static func resolveDatabasePath(for location: StorageLocation) throws -> String {
+        switch location {
+        case .applicationSupport:
+            return try applicationSupportDatabasePath()
+        case .file(let path):
+            let directory = (path as NSString).deletingLastPathComponent
+            if !directory.isEmpty {
+                try FileManager.default.createDirectory(
+                    atPath: directory,
+                    withIntermediateDirectories: true
+                )
+            }
+            return path
+        }
+    }
+
+    private static func applicationSupportDatabasePath() throws -> String {
         let fileManager = FileManager.default
 
         let appSupport = try fileManager.url(
@@ -155,16 +189,7 @@ nonisolated final class DatabaseManager: Sendable {
             )
         }
 
-        let dbPath = dbDirectory.appendingPathComponent("captures.db")
-
-        var configuration = Configuration()
-        configuration.prepareDatabase { db in
-            try db.execute(sql: "PRAGMA foreign_keys = ON")
-        }
-
-        let queue = try DatabaseQueue(path: dbPath.path, configuration: configuration)
-
-        return (queue, dbPath.path)
+        return dbDirectory.appendingPathComponent("captures.db").path
     }
 }
 

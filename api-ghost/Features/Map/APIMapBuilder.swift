@@ -9,14 +9,17 @@ final class APIMapBuilder: Sendable {
     // MARK: - Dependencies
 
     private let normalizer = PathNormalizer.shared
+    private let databaseManager: DatabaseManager
 
-    private init() {}
+    init(databaseManager: DatabaseManager = .shared) {
+        self.databaseManager = databaseManager
+    }
 
     // MARK: - Build Map
 
     /// Filtered traffic is never persisted, so no exclusion is applied.
     func buildMap() async throws -> [APIDomain] {
-        guard let db = DatabaseManager.shared.database else {
+        guard let db = databaseManager.database else {
             throw APIMapError.databaseNotAvailable
         }
         let rows = try await fetchRawRows(from: db)
@@ -112,7 +115,7 @@ final class APIMapBuilder: Sendable {
     }
 
     func buildStatistics() async throws -> APIMapStatistics {
-        guard let db = DatabaseManager.shared.database else {
+        guard let db = databaseManager.database else {
             throw APIMapError.databaseNotAvailable
         }
         return try await db.read { db in

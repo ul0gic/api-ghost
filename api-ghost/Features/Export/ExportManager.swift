@@ -11,7 +11,11 @@ nonisolated final class ExportManager: Sendable {
 
     static let shared = ExportManager()
 
-    private init() {}
+    private let databaseManager: DatabaseManager
+
+    init(databaseManager: DatabaseManager = .shared) {
+        self.databaseManager = databaseManager
+    }
 
     // MARK: - Export Methods
 
@@ -45,8 +49,8 @@ nonisolated final class ExportManager: Sendable {
     // MARK: - SQLite Export
 
     private func exportSQLite(to url: URL) throws {
-        guard let sourcePath = DatabaseManager.shared.path,
-              let db = DatabaseManager.shared.database else {
+        guard let sourcePath = databaseManager.path,
+              let db = databaseManager.database else {
             throw ExportError.databaseNotAvailable
         }
 
@@ -272,7 +276,7 @@ nonisolated final class ExportManager: Sendable {
     // MARK: - Helpers
 
     private func fetchCaptures(includeFiltered: Bool) throws -> [Capture] {
-        guard let db = DatabaseManager.shared.database else {
+        guard let db = databaseManager.database else {
             throw ExportError.databaseNotAvailable
         }
 

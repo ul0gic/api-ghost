@@ -2,9 +2,17 @@ import Foundation
 import Security
 import SwiftMITM
 
+/// CA collaborators `ProxyController` needs; abstracted so a test can inject an isolated-Keychain CA.
+/// `nonisolated` requirements: trust reads/mutations must run off the main actor (system auth prompt blocks).
+protocol CertificateAuthorityProviding: Sendable {
+    nonisolated func currentAuthority() throws -> CertificateAuthority
+    nonisolated func status() -> CertificateAuthorityManager.TrustStatus
+    nonisolated func removeTrust() throws
+}
+
 /// Single seam for network-mode CA lifecycle: Keychain-backed load/generate plus system trust-anchor management.
 /// `nonisolated` so trust mutation can run off the main actor — `.admin`-domain calls block on a system auth prompt.
-nonisolated struct CertificateAuthorityManager: Sendable {
+nonisolated struct CertificateAuthorityManager: CertificateAuthorityProviding, Sendable {
     enum TrustStatus: Sendable, Equatable {
         case notGenerated
         case generatedNotTrusted

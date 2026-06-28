@@ -17,6 +17,17 @@ final class ProxyServerTests: XCTestCase {
         try await proxy.stop()
     }
 
+    func testNonLoopbackBindRejectedWithoutOptIn() async throws {
+        let ca = try CertificateAuthority()
+        let proxy = ProxyServer(certificateAuthority: ca, sink: NoopSink())
+        do {
+            _ = try await proxy.start(host: "0.0.0.0", port: 0)
+            XCTFail("non-loopback bind must be rejected without explicit opt-in")
+        } catch ProxyServerError.nonLoopbackBindRejected {
+            // expected: the guard throws before any socket is bound
+        }
+    }
+
     func testHTTP1ReoriginationDeliversBodyAndEmitsCaptureEvents() async throws {
         try await runReorigination(alpn: "http/1.1", bodySize: 200_000)
     }
@@ -37,7 +48,8 @@ final class ProxyServerTests: XCTestCase {
         let proxy = ProxyServer(
             certificateAuthority: mitmCA,
             sink: sink,
-            upstreamPolicy: .init(additionalTrustRootsPEM: [origin.caCertificatePEM])
+            upstreamPolicy: .init(additionalTrustRootsPEM: [origin.caCertificatePEM]),
+            egressPolicy: .init(allowInternal: true)
         )
         let proxyPort = try await proxy.start(port: 0)
 

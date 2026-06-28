@@ -10,6 +10,7 @@ final class Preferences {
         static let interceptMode = "interceptMode"
         static let isCAInstalled = "isCAInstalled"
         static let proxyPort = "proxyPort"
+        static let allowInternalProxyTargets = "allowInternalProxyTargets"
         static let inspectorPanelHeight = "inspectorPanelHeight"
         static let inspectorPanelWidth = "inspectorPanelWidth"
         static let inspectorPanelCollapsed = "inspectorPanelCollapsed"
@@ -50,6 +51,12 @@ final class Preferences {
             return port == 0 ? 8080 : port
         }
         set { defaults.set(newValue, forKey: Keys.proxyPort) }
+    }
+
+    /// Opt-in to let the proxy dial loopback/RFC1918/link-local upstreams (e.g. localhost dev APIs); denied by default.
+    var allowInternalProxyTargets: Bool {
+        get { defaults.bool(forKey: Keys.allowInternalProxyTargets) }
+        set { defaults.set(newValue, forKey: Keys.allowInternalProxyTargets) }
     }
 
     // MARK: - Inspector Panel

@@ -8,13 +8,17 @@ final class CaptureStore: Sendable {
 
     // MARK: - Properties
 
+    private let databaseManager: DatabaseManager
+
     private var database: DatabaseQueue? {
-        DatabaseManager.shared.database
+        databaseManager.database
     }
 
     // MARK: - Initialization
 
-    private init() {}
+    init(databaseManager: DatabaseManager = .shared) {
+        self.databaseManager = databaseManager
+    }
 
     // MARK: - Create
 

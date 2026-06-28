@@ -5,9 +5,8 @@ import Testing
 
 // MARK: - Proxy lifecycle (5.2.2)
 
-/// Only the headless-safe branches: initial state and idempotent stop. `start()` binds a real loopback port and
-/// reaches `CertificateAuthorityManager.default` (the production Keychain CA), so the bound lifecycle needs an
-/// integration test with a DI seam — tracked in DBT-009, not exercised here.
+/// Initial state and idempotent stop on the production-default controller. The bound `start → stop`
+/// lifecycle is exercised against injected collaborators in `ProxyControllerLifecycleTests` (DBT-009).
 @MainActor
 struct ProxyControllerTests {
     @Test

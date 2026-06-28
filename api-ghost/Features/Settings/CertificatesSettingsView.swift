@@ -47,6 +47,10 @@ struct CertificateAuthoritySection: View {
 
             CertificateStatusCard(status: model.status)
 
+            if model.status == .installedTrusted {
+                trustWarningBanner
+            }
+
             if let message = model.errorMessage {
                 Label(message, systemImage: "xmark.octagon.fill")
                     .font(.system(size: 12))
@@ -76,6 +80,35 @@ struct CertificateAuthoritySection: View {
         } message: { action in
             Text(alertMessage(for: action))
         }
+    }
+
+    private var trustWarningBanner: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "exclamationmark.shield.fill")
+                .font(.system(size: 16))
+                .foregroundColor(.ghostWarning)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("This CA is trusted system-wide")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.ghostTextPrimary)
+                Text("""
+                Every app on this Mac trusts certificates this CA signs. Remove trust before uninstalling APIGhost — \
+                deleting the app does not revoke it. Trust is also revoked automatically when you leave Network Proxy \
+                mode.
+                """)
+                    .font(.system(size: 12))
+                    .foregroundColor(.ghostTextSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(16)
+        .background(Color.ghostWarning.opacity(0.1))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(Color.ghostWarning.opacity(0.4), lineWidth: 1)
+        )
+        .cornerRadius(10)
     }
 
     @ViewBuilder private var actionRow: some View {

@@ -238,6 +238,7 @@ final class CaptureBodyTests: XCTestCase {
             certificateAuthority: mitmCA,
             sink: sink,
             upstreamPolicy: .init(additionalTrustRootsPEM: [origin.caCertificatePEM]),
+            egressPolicy: .init(allowInternal: true),
             captureBodyLimit: captureLimit
         )
         let proxyPort = try await proxy.start(port: 0)

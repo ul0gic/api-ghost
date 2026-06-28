@@ -31,6 +31,8 @@ public final class ProxyServer: Sendable {
     private let tls: TLSTermination
     private let sink: CaptureEventSink
     private let upstreamPolicy: UpstreamPolicy
+    private let egressPolicy: EgressPolicy
+    private let allowNonLoopbackBind: Bool
     private let targetWindowSize: Int
     private let captureBodyLimit: Int
     private let serverChannel: NIOLockedValueBox<Channel?>
@@ -41,6 +43,8 @@ public final class ProxyServer: Sendable {
         sink: CaptureEventSink,
         group: EventLoopGroup? = nil,
         upstreamPolicy: UpstreamPolicy = .default,
+        egressPolicy: EgressPolicy = .default,
+        allowNonLoopbackBind: Bool = false,
         targetWindowSize: Int = 65535,
         captureBodyLimit: Int = 0
     ) {
@@ -48,6 +52,8 @@ public final class ProxyServer: Sendable {
         self.tls = TLSTermination(authority: certificateAuthority)
         self.sink = sink
         self.upstreamPolicy = upstreamPolicy
+        self.egressPolicy = egressPolicy
+        self.allowNonLoopbackBind = allowNonLoopbackBind
         self.targetWindowSize = targetWindowSize
         self.captureBodyLimit = captureBodyLimit
         if let group {
@@ -61,8 +67,12 @@ public final class ProxyServer: Sendable {
     }
 
     /// Binds the listener and returns the bound port. Pass `port: 0` for an ephemeral port.
+    /// Non-loopback binds expose the proxy as an open relay and require `allowNonLoopbackBind`.
     @discardableResult
     public func start(host: String = "127.0.0.1", port: Int) async throws -> Int {
+        guard allowNonLoopbackBind || Self.isLoopbackHost(host) else {
+            throw ProxyServerError.nonLoopbackBindRejected(host)
+        }
         let channel = try await ServerBootstrap(group: group)
             .serverChannelOption(ChannelOptions.backlog, value: 256)
             .serverChannelOption(ChannelOptions.socketOption(.so_reuseaddr), value: 1)
@@ -223,15 +233,23 @@ public final class ProxyServer: Sendable {
         } catch {
             return loop.makeFailedFuture(error)
         }
+        let egressPolicy = egressPolicy
+        if egressPolicy.deniesLiteral(host) {
+            return loop.makeFailedFuture(ProxyServerError.egressBlocked(host))
+        }
         let serverHostname = Self.isIPAddress(host) ? nil : host
         return ClientBootstrap(group: loop)
-            .channelInitializer { channel in
-                channel.eventLoop.makeCompletedFuture {
+            .connect(host: host, port: port)
+            .flatMap { channel -> EventLoopFuture<Channel> in
+                guard let remote = channel.remoteAddress, !egressPolicy.denies(remote) else {
+                    return channel.close().flatMapThrowing { throw ProxyServerError.egressBlocked(host) }
+                }
+                return channel.eventLoop.makeCompletedFuture {
                     let handler = try NIOSSLClientHandler(context: context, serverHostname: serverHostname)
                     try channel.pipeline.syncOperations.addHandler(handler)
+                    return channel
                 }
             }
-            .connect(host: host, port: port)
     }
 
     private func makeUpstreamContext(alpn: String) throws -> NIOSSLContext {
@@ -275,8 +293,25 @@ public final class ProxyServer: Sendable {
     private static func isIPAddress(_ host: String) -> Bool {
         (try? SocketAddress(ipAddress: host, port: 0)) != nil
     }
+
+    private static func isLoopbackHost(_ host: String) -> Bool {
+        if host == "localhost" { return true }
+        guard let address = try? SocketAddress(ipAddress: host, port: 0) else { return false }
+        return EgressPolicy.isLoopback(address)
+    }
 }
+
+/// Lifecycle seam so a controller can substitute a non-binding fake in headless tests.
+public protocol ProxyServing: Sendable {
+    @discardableResult
+    func start(host: String, port: Int) async throws -> Int
+    func stop() async throws
+}
+
+extension ProxyServer: ProxyServing {}
 
 public enum ProxyServerError: Error, Equatable, Sendable {
     case invalidAuthority(String)
+    case egressBlocked(String)
+    case nonLoopbackBindRejected(String)
 }

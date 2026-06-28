@@ -4,8 +4,13 @@ import Testing
 @testable import APIGhost
 
 @MainActor
-@Suite(.serialized)
 struct GoldenExportBaselineTests {
+    private let db: IsolatedCaptureDatabase
+
+    init() throws {
+        db = try IsolatedCaptureDatabase()
+    }
+
     private func exportedURL() -> URL {
         FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
     }
@@ -16,10 +21,10 @@ struct GoldenExportBaselineTests {
         includeBodies: Bool,
         includeFiltered: Bool = false
     ) throws -> Data {
-        try FixtureDatabase.reseed()
+        try db.reseed()
         let url = exportedURL()
         defer { try? FileManager.default.removeItem(at: url) }
-        try ExportManager.shared.export(
+        try db.exporter.export(
             to: url,
             format: format,
             includeHeaders: includeHeaders,
@@ -61,10 +66,10 @@ struct GoldenExportBaselineTests {
 
     @Test
     func sqliteContentPreserved() throws {
-        try FixtureDatabase.reseed()
+        try db.reseed()
         let url = exportedURL()
         defer { try? FileManager.default.removeItem(at: url) }
-        try ExportManager.shared.export(to: url, format: .sqlite)
+        try db.exporter.export(to: url, format: .sqlite)
         try Golden.verify(try SQLiteContent.canonicalString(ofExportAt: url), name: "sqlite_content.json")
     }
 
