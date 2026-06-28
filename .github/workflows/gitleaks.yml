@@ -7,6 +7,7 @@ on:
     branches: [main]
   schedule:
     - cron: '0 7 * * 1' # weekly
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -16,7 +17,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  GITLEAKS_VERSION: '8.18.4'
+  GITLEAKS_VERSION: '8.30.1'
 
 jobs:
   gitleaks:
@@ -47,7 +48,7 @@ jobs:
 
       # Advisory: report to the Security tab; --exit-code 0 so findings never fail the build. --redact keeps secret values out of logs.
       - name: Scan
-        run: ./gitleaks detect --source . --report-format sarif --report-path gitleaks.sarif --exit-code 0 --redact
+        run: ./gitleaks git . --report-format sarif --report-path gitleaks.sarif --exit-code 0 --redact
 
       - name: Upload SARIF
         uses: github/codeql-action/upload-sarif@dd903d2e4f5405488e5ef1422510ee31c8b32357 # v3.36.2
