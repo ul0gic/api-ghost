@@ -164,7 +164,8 @@ jobs:
           codesign --display --verbose=4 "$APP" 2>&1 | grep -q '(runtime)' \
             || { echo "::error::Hardened runtime flag missing on the app"; exit 1; }
           xcrun stapler validate "APIGhost.dmg"
-          spctl --assess --type open --verbose=4 "APIGhost.dmg"
+          # DMGs need an explicit signature context; without it spctl returns "Insufficient Context".
+          spctl --assess --type open --context context:primary-signature --verbose=4 "APIGhost.dmg"
 
       # Verifiable SLSA build provenance for the DMG (downloaders: gh attestation
       # verify APIGhost.dmg --repo ul0gic/<repo>). Uses OIDC, not the signing cert.
