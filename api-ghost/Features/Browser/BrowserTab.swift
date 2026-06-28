@@ -84,19 +84,22 @@ extension BrowserTab {
         let configuration = WKWebViewConfiguration()
         configuration.websiteDataStore = dataStore
 
-        if let scriptURL = Bundle.main.url(forResource: "APIGhostInterceptor", withExtension: "js"),
-           let scriptSource = try? String(contentsOf: scriptURL, encoding: .utf8) {
-            let script = WKUserScript(
-                source: scriptSource,
-                injectionTime: .atDocumentStart,
-                forMainFrameOnly: false
-            )
-            configuration.userContentController.addUserScript(script)
-        } else {
-            logger.error("WARNING: Could not load APIGhostInterceptor.js")
-        }
+        // Proxy mode is the sole capturer for its traffic; injecting the JS interceptor too would double-capture.
+        if AppState.shared.interceptMode == .jsInjection {
+            if let scriptURL = Bundle.main.url(forResource: "APIGhostInterceptor", withExtension: "js"),
+               let scriptSource = try? String(contentsOf: scriptURL, encoding: .utf8) {
+                let script = WKUserScript(
+                    source: scriptSource,
+                    injectionTime: .atDocumentStart,
+                    forMainFrameOnly: false
+                )
+                configuration.userContentController.addUserScript(script)
+            } else {
+                logger.error("WARNING: Could not load APIGhostInterceptor.js")
+            }
 
-        configuration.userContentController.add(messageHandler, name: JSMessageHandler.handlerName)
+            configuration.userContentController.add(messageHandler, name: JSMessageHandler.handlerName)
+        }
 
         return WKWebView(frame: .zero, configuration: configuration)
     }

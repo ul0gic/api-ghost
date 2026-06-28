@@ -249,6 +249,8 @@ struct EmbeddedSettingsView: View {
                     switch selectedTab {
                     case .general:
                         GeneralSettingsTab()
+                    case .certificates:
+                        CertificatesSettingsView()
                     case .filtering:
                         FilteringSettingsTab()
                     case .dataManagement:

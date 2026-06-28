@@ -19,7 +19,7 @@ final class CountingSink: CaptureEventSink, @unchecked Sendable {
             switch event {
             case .requestHead: requestHeads += 1
             case .responseHead: responseHeads += 1
-            case .responseBodyChunk(_, let count): responseBytes += count
+            case .responseBodyChunk(_, _, let count): responseBytes += count
             case .responseEnd: responseEnds += 1
             case .streamError: errors += 1
             default: break

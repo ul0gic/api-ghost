@@ -28,6 +28,22 @@ enum NavigationTab: String, CaseIterable, Identifiable {
     }
 }
 
+// MARK: - Intercept Mode
+
+enum InterceptMode: String, CaseIterable, Identifiable {
+    case jsInjection
+    case networkProxy
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .jsInjection: return "JavaScript Injection"
+        case .networkProxy: return "Network Proxy"
+        }
+    }
+}
+
 @Observable
 final class AppState {
     static let shared = AppState()
@@ -40,6 +56,10 @@ final class AppState {
 
     var capturedRequestsCount: Int = 0
     var filteredRequestsCount: Int = 0
+
+    var interceptMode: InterceptMode = Preferences.shared.interceptMode {
+        didSet { Preferences.shared.interceptMode = interceptMode }
+    }
 
     private init() {}
 }

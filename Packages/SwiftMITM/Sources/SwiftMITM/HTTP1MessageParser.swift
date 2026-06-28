@@ -41,7 +41,8 @@ final class HTTP1MessageParser {
     func feed<Bytes: RandomAccessCollection>(
         _ bytes: Bytes,
         methodProvider: () -> String?,
-        emit: (HTTP1ParserOutput) -> Void
+        emit: (HTTP1ParserOutput) -> Void,
+        bodyBytes: (Bytes.SubSequence) -> Void = { _ in }
     ) where Bytes.Element == UInt8, Bytes.Index == Int {
         var index = bytes.startIndex
         let end = bytes.endIndex
@@ -52,15 +53,22 @@ final class HTTP1MessageParser {
             case .head:
                 index = consumeHead(bytes, from: index, end: end, methodProvider: methodProvider, emit: emit)
             case .bodyLength(let remaining):
-                index = consumeCountedBody(bytes, from: index, end: end, remaining: remaining, emit: emit)
+                index = consumeCountedBody(
+                    bytes, from: index, end: end, remaining: remaining, emit: emit, bodyBytes: bodyBytes
+                )
             case .bodyUntilClose:
                 let count = end - index
-                if count > 0 { emit(.bodyChunk(byteCount: count)) }
+                if count > 0 {
+                    emit(.bodyChunk(byteCount: count))
+                    bodyBytes(bytes[index..<end])
+                }
                 index = end
             case .bodyChunkSize:
                 index = consumeChunkSize(bytes, from: index, end: end, emit: emit)
             case .bodyChunkData(let remaining):
-                index = consumeChunkData(bytes, from: index, end: end, remaining: remaining, emit: emit)
+                index = consumeChunkData(
+                    bytes, from: index, end: end, remaining: remaining, emit: emit, bodyBytes: bodyBytes
+                )
             case .bodyChunkDataTerminator(let remaining):
                 index = consumeChunkTerminator(bytes, from: index, end: end, remaining: remaining)
             case .bodyChunkTrailer:
@@ -104,10 +112,14 @@ final class HTTP1MessageParser {
         from start: Int,
         end: Int,
         remaining: Int,
-        emit: (HTTP1ParserOutput) -> Void
+        emit: (HTTP1ParserOutput) -> Void,
+        bodyBytes: (Bytes.SubSequence) -> Void
     ) -> Int where Bytes.Element == UInt8, Bytes.Index == Int {
         let take = min(remaining, end - start)
-        if take > 0 { emit(.bodyChunk(byteCount: take)) }
+        if take > 0 {
+            emit(.bodyChunk(byteCount: take))
+            bodyBytes(bytes[start..<(start + take)])
+        }
         let left = remaining - take
         if left == 0 {
             emit(.messageComplete)
@@ -146,10 +158,14 @@ final class HTTP1MessageParser {
         from start: Int,
         end: Int,
         remaining: Int,
-        emit: (HTTP1ParserOutput) -> Void
+        emit: (HTTP1ParserOutput) -> Void,
+        bodyBytes: (Bytes.SubSequence) -> Void
     ) -> Int where Bytes.Element == UInt8, Bytes.Index == Int {
         let take = min(remaining, end - start)
-        if take > 0 { emit(.bodyChunk(byteCount: take)) }
+        if take > 0 {
+            emit(.bodyChunk(byteCount: take))
+            bodyBytes(bytes[start..<(start + take)])
+        }
         let left = remaining - take
         phase = left == 0 ? .bodyChunkDataTerminator(remaining: 2) : .bodyChunkData(remaining: left)
         return start + take
@@ -219,8 +235,12 @@ final class HTTP1MessageParser {
             fail(emit: emit)
             return
         }
+        guard let framing = requestFraming(headers: headers) else {
+            fail(emit: emit)
+            return
+        }
         emit(.requestHead(method: String(parts[0]), path: String(parts[1]), headers: headers))
-        enterBody(framing: requestFraming(headers: headers), emit: emit)
+        enterBody(framing: framing, emit: emit)
     }
 
     private func parseResponseHead(
@@ -235,8 +255,12 @@ final class HTTP1MessageParser {
             return
         }
         let requestMethod = methodProvider()
+        guard let framing = responseFraming(status: status, method: requestMethod, headers: headers) else {
+            fail(emit: emit)
+            return
+        }
         emit(.responseHead(status: status, headers: headers))
-        enterBody(framing: responseFraming(status: status, method: requestMethod, headers: headers), emit: emit)
+        enterBody(framing: framing, emit: emit)
     }
 
     private enum BodyFraming {
@@ -263,18 +287,30 @@ final class HTTP1MessageParser {
         }
     }
 
-    private func requestFraming(headers: [HTTPHeaderField]) -> BodyFraming {
-        if Self.isChunked(headers) { return .chunked }
-        if let length = Self.contentLength(headers) { return .length(length) }
-        return .none
+    private func requestFraming(headers: [HTTPHeaderField]) -> BodyFraming? {
+        let chunked = Self.isChunked(headers)
+        switch Self.contentLength(headers) {
+        case .invalid:
+            return nil
+        case .none:
+            return chunked ? .chunked : BodyFraming.none
+        case .value(let length):
+            return chunked ? .chunked : .length(length)
+        }
     }
 
-    private func responseFraming(status: Int, method: String?, headers: [HTTPHeaderField]) -> BodyFraming {
-        if method?.uppercased() == "HEAD" { return .none }
-        if (100..<200).contains(status) || status == 204 || status == 304 { return .none }
-        if Self.isChunked(headers) { return .chunked }
-        if let length = Self.contentLength(headers) { return .length(length) }
-        return .untilClose
+    private func responseFraming(status: Int, method: String?, headers: [HTTPHeaderField]) -> BodyFraming? {
+        if method?.uppercased() == "HEAD" { return BodyFraming.none }
+        if (100..<200).contains(status) || status == 204 || status == 304 { return BodyFraming.none }
+        let chunked = Self.isChunked(headers)
+        switch Self.contentLength(headers) {
+        case .invalid:
+            return nil
+        case .none:
+            return chunked ? .chunked : .untilClose
+        case .value(let length):
+            return chunked ? .chunked : .length(length)
+        }
     }
 
     private func resetForNextMessage() {
@@ -287,8 +323,16 @@ final class HTTP1MessageParser {
         phase = .failed
         emit(.failed)
     }
+}
 
-    private static func parseHeaderFields(_ lines: [String]) -> [HTTPHeaderField] {
+fileprivate extension HTTP1MessageParser {
+    enum ContentLengthResult {
+        case none
+        case value(Int)
+        case invalid
+    }
+
+    static func parseHeaderFields(_ lines: [String]) -> [HTTPHeaderField] {
         lines.compactMap { line in
             guard let separator = line.firstIndex(of: ":") else { return nil }
             let name = line[line.startIndex..<separator].trimmingASCIIWhitespace()
@@ -297,33 +341,47 @@ final class HTTP1MessageParser {
         }
     }
 
-    private static func isChunked(_ headers: [HTTPHeaderField]) -> Bool {
+    static func isChunked(_ headers: [HTTPHeaderField]) -> Bool {
         headers.contains {
             $0.name.lowercased() == "transfer-encoding" && $0.value.lowercased().contains("chunked")
         }
     }
 
-    private static func contentLength(_ headers: [HTTPHeaderField]) -> Int? {
-        guard let field = headers.first(where: { $0.name.lowercased() == "content-length" }) else {
-            return nil
+    static func contentLength(_ headers: [HTTPHeaderField]) -> ContentLengthResult {
+        let fields = headers.filter { $0.name.lowercased() == "content-length" }
+        guard !fields.isEmpty else { return .none }
+        var distinct: Set<Int> = []
+        for field in fields {
+            let text = field.value.trimmingASCIIWhitespace()
+            guard !text.isEmpty, text.utf8.allSatisfy({ $0 >= 0x30 && $0 <= 0x39 }),
+                let length = Int(text) else {
+                return .invalid
+            }
+            distinct.insert(length)
         }
-        return Int(field.value.trimmingASCIIWhitespace())
+        guard distinct.count == 1, let length = distinct.first else { return .invalid }
+        return .value(length)
     }
 
-    private static func parseChunkSize(_ line: [UInt8]) -> Int? {
+    static func parseChunkSize(_ line: [UInt8]) -> Int? {
         let withoutCRLF = line.dropLast(2)
         let hex = withoutCRLF.prefix { $0 != UInt8(ascii: ";") }
         let text = (String(bytes: hex, encoding: .utf8) ?? "").trimmingASCIIWhitespace()
+        guard !text.isEmpty, text.utf8.allSatisfy(Self.isHexDigit) else { return nil }
         return Int(text, radix: 16)
     }
 
-    private static func endsWithDoubleCRLF(_ bytes: [UInt8]) -> Bool {
+    static func isHexDigit(_ byte: UInt8) -> Bool {
+        (byte >= 0x30 && byte <= 0x39) || (byte >= 0x41 && byte <= 0x46) || (byte >= 0x61 && byte <= 0x66)
+    }
+
+    static func endsWithDoubleCRLF(_ bytes: [UInt8]) -> Bool {
         bytes.count >= 4
             && bytes[bytes.count - 4] == 13 && bytes[bytes.count - 3] == 10
             && bytes[bytes.count - 2] == 13 && bytes[bytes.count - 1] == 10
     }
 
-    private static func endsWithCRLF(_ bytes: [UInt8]) -> Bool {
+    static func endsWithCRLF(_ bytes: [UInt8]) -> Bool {
         bytes.count >= 2 && bytes[bytes.count - 2] == 13 && bytes[bytes.count - 1] == 10
     }
 }

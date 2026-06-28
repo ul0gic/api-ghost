@@ -2,7 +2,8 @@ import Foundation
 import Security
 
 /// Sole component that talks to the Keychain — generic secret storage plus network-mode CA material.
-struct KeychainManager: Sendable {
+/// `nonisolated` so it composes with off-main callers (CA manager, NIO proxy); Security APIs are thread-safe.
+nonisolated struct KeychainManager: Sendable {
     static let `default` = KeychainManager()
 
     static let serviceIdentifier = "corelift.api-ghost"

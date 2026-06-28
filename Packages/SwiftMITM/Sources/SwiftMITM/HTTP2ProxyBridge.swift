@@ -18,17 +18,20 @@ public final class HTTP2ProxyBridge: Sendable {
     private let upstream: UpstreamTarget
     private let sink: CaptureEventSink
     private let targetWindowSize: Int
+    private let captureBodyLimit: Int
 
     public init(
         group: EventLoopGroup,
         upstream: UpstreamTarget,
         sink: CaptureEventSink,
-        targetWindowSize: Int = 65535
+        targetWindowSize: Int = 65535,
+        captureBodyLimit: Int = 0
     ) {
         self.group = group
         self.upstream = upstream
         self.sink = sink
         self.targetWindowSize = targetWindowSize
+        self.captureBodyLimit = captureBodyLimit
     }
 
     public func start(host: String = "127.0.0.1", port: Int = 0) -> EventLoopFuture<Channel> {
@@ -89,7 +92,8 @@ public final class HTTP2ProxyBridge: Sendable {
             inboundStream: inbound,
             upstreamMux: upstreamMux,
             authority: "\(upstream.host):\(upstream.port)",
-            sink: sink
+            sink: sink,
+            captureBodyLimit: captureBodyLimit
         )
     }
 }

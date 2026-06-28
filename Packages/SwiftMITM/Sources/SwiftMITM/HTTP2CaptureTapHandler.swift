@@ -16,12 +16,14 @@ final class HTTP2CaptureTapHandler: ChannelInboundHandler {
     private let requestID: UUID
     private let authority: String
     private let sink: CaptureEventSink
+    private var bodyBuffer: CaptureBodyBuffer
 
-    init(direction: Direction, requestID: UUID, authority: String, sink: CaptureEventSink) {
+    init(direction: Direction, requestID: UUID, authority: String, sink: CaptureEventSink, captureBodyLimit: Int = 0) {
         self.direction = direction
         self.requestID = requestID
         self.authority = authority
         self.sink = sink
+        self.bodyBuffer = CaptureBodyBuffer(limit: captureBodyLimit)
     }
 
     func channelRead(context: ChannelHandlerContext, data: NIOAny) {
@@ -33,7 +35,7 @@ final class HTTP2CaptureTapHandler: ChannelInboundHandler {
                 emitEnd()
             }
         case .data(let frame):
-            sink.receive(directionalBodyChunk(byteCount: frame.data.readableBytes))
+            captureBody(frame.data)
             if frame.endStream {
                 emitEnd()
             }
@@ -41,6 +43,22 @@ final class HTTP2CaptureTapHandler: ChannelInboundHandler {
             break
         }
         context.fireChannelRead(data)
+    }
+
+    private func captureBody(_ data: IOData) {
+        let fullSize = data.readableBytes
+        let bytes: [UInt8]
+        switch data {
+        case .byteBuffer(let buffer):
+            bytes = bodyBuffer.take(buffer.readableBytesView)
+        case .fileRegion:
+            bytes = bodyBuffer.take(EmptyCollection<UInt8>())
+        }
+        sink.receive(
+            direction == .request
+                ? .requestBodyChunk(requestID: requestID, bytes: bytes, byteCount: fullSize)
+                : .responseBodyChunk(requestID: requestID, bytes: bytes, byteCount: fullSize)
+        )
     }
 
     private func emitHead(_ headers: HPACKHeaders) {
@@ -73,17 +91,11 @@ final class HTTP2CaptureTapHandler: ChannelInboundHandler {
         }
     }
 
-    private func directionalBodyChunk(byteCount: Int) -> CaptureEvent {
-        switch direction {
-        case .request: return .requestBodyChunk(requestID: requestID, byteCount: byteCount)
-        case .response: return .responseBodyChunk(requestID: requestID, byteCount: byteCount)
-        }
-    }
-
     private func emitEnd() {
+        let truncated = bodyBuffer.truncated
         switch direction {
-        case .request: sink.receive(.requestEnd(requestID: requestID))
-        case .response: sink.receive(.responseEnd(requestID: requestID))
+        case .request: sink.receive(.requestEnd(requestID: requestID, truncated: truncated))
+        case .response: sink.receive(.responseEnd(requestID: requestID, truncated: truncated))
         }
     }
 }

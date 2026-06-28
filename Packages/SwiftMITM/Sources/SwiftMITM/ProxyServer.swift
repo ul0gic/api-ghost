@@ -32,20 +32,24 @@ public final class ProxyServer: Sendable {
     private let sink: CaptureEventSink
     private let upstreamPolicy: UpstreamPolicy
     private let targetWindowSize: Int
+    private let captureBodyLimit: Int
     private let serverChannel: NIOLockedValueBox<Channel?>
 
+    /// `captureBodyLimit` caps captured body bytes per request and per response; 0 disables body capture.
     public init(
         certificateAuthority: CertificateAuthority,
         sink: CaptureEventSink,
         group: EventLoopGroup? = nil,
         upstreamPolicy: UpstreamPolicy = .default,
-        targetWindowSize: Int = 65535
+        targetWindowSize: Int = 65535,
+        captureBodyLimit: Int = 0
     ) {
         self.authority = certificateAuthority
         self.tls = TLSTermination(authority: certificateAuthority)
         self.sink = sink
         self.upstreamPolicy = upstreamPolicy
         self.targetWindowSize = targetWindowSize
+        self.captureBodyLimit = captureBodyLimit
         if let group {
             self.group = group
             self.ownsGroup = false
@@ -144,6 +148,7 @@ public final class ProxyServer: Sendable {
     private func bridgeHTTP2(inbound: Channel, host: String, port: Int) -> EventLoopFuture<Void> {
         let loop = inbound.eventLoop
         let sink = sink
+        let captureBodyLimit = captureBodyLimit
         let connectionConfiguration = connectionConfiguration
         let streamConfiguration = streamConfiguration
         return connectUpstreamTLS(host: host, port: port, alpn: ALPNProtocol.http2.rawValue, on: loop)
@@ -163,7 +168,8 @@ public final class ProxyServer: Sendable {
                             inboundStream: inboundStream,
                             upstreamMux: upstreamMux,
                             authority: "\(host):\(port)",
-                            sink: sink
+                            sink: sink,
+                            captureBodyLimit: captureBodyLimit
                         )
                     }
                     .map { _ in () }
@@ -174,6 +180,7 @@ public final class ProxyServer: Sendable {
     private func bridgeHTTP1(inbound: Channel, host: String, port: Int) -> EventLoopFuture<Void> {
         let loop = inbound.eventLoop
         let sink = sink
+        let captureBodyLimit = captureBodyLimit
         let authority = "\(host):\(port)"
         return connectUpstreamTLS(host: host, port: port, alpn: ALPNProtocol.http11.rawValue, on: loop)
             .flatMap { upstream in
@@ -185,7 +192,8 @@ public final class ProxyServer: Sendable {
                             direction: .response,
                             authority: authority,
                             correlator: correlator,
-                            sink: sink
+                            sink: sink,
+                            captureBodyLimit: captureBodyLimit
                         ),
                         pair.value.1
                     ])
@@ -194,7 +202,8 @@ public final class ProxyServer: Sendable {
                             direction: .request,
                             authority: authority,
                             correlator: correlator,
-                            sink: sink
+                            sink: sink,
+                            captureBodyLimit: captureBodyLimit
                         ),
                         pair.value.0
                     ])

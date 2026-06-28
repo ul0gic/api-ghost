@@ -292,6 +292,14 @@ extension BrowserCoordinator {
             logger.error("Provisional nav failed: \(nsError.domain) code=\(nsError.code) - \(desc)")
         }
 
+        if ProxyFallback.isMITMHandshakeFailure(error) {
+            NotificationCenter.default.post(
+                name: ProxyFallback.mitmHandshakeFailed,
+                object: nil,
+                userInfo: ProxyFallback.failingHost(error).map { [ProxyFallback.hostKey: $0] }
+            )
+        }
+
         DispatchQueue.main.async {
             self.viewModel.isLoading = false
             self.viewModel.updateNavigationState()

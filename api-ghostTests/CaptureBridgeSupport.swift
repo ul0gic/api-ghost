@@ -16,9 +16,40 @@ final class FakeScriptMessage: WKScriptMessage {
     override var name: String { JSMessageHandler.handlerName }
 }
 
+/// Process-wide async mutex. The capture-pipeline suites share `TrafficCapture.shared` global state
+/// (`isCapturing`, `recentCaptures`), so each test holds this across its whole body — `.serialized` only
+/// orders tests within one suite, not the parallel suites that would otherwise stomp the singleton (QA-006).
+actor CaptureStateGate {
+    static let shared = CaptureStateGate()
+    private var locked = false
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+
+    func acquire() async {
+        guard locked else { locked = true; return }
+        await withCheckedContinuation { waiters.append($0) }
+    }
+
+    func release() {
+        if waiters.isEmpty { locked = false } else { waiters.removeFirst().resume() }
+    }
+}
+
 @MainActor
 enum CaptureBridge {
     static let dummyController = WKUserContentController()
+
+    /// Runs `body` with exclusive ownership of the shared capture state, releasing on success and on throw.
+    static func withExclusiveCaptureState<T>(_ body: @MainActor () async throws -> T) async rethrows -> T {
+        await CaptureStateGate.shared.acquire()
+        do {
+            let result = try await body()
+            await CaptureStateGate.shared.release()
+            return result
+        } catch {
+            await CaptureStateGate.shared.release()
+            throw error
+        }
+    }
 
     static func deliver(_ payload: [String: Any], to handler: JSMessageHandler) {
         handler.userContentController(dummyController, didReceive: FakeScriptMessage(payload: payload))

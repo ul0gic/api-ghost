@@ -7,6 +7,7 @@ final class Preferences {
 
     private enum Keys {
         static let hasCompletedOnboarding = "hasCompletedOnboarding"
+        static let interceptMode = "interceptMode"
         static let isCAInstalled = "isCAInstalled"
         static let proxyPort = "proxyPort"
         static let inspectorPanelHeight = "inspectorPanelHeight"
@@ -33,6 +34,11 @@ final class Preferences {
     var hasCompletedOnboarding: Bool {
         get { defaults.bool(forKey: Keys.hasCompletedOnboarding) }
         set { defaults.set(newValue, forKey: Keys.hasCompletedOnboarding) }
+    }
+
+    var interceptMode: InterceptMode {
+        get { InterceptMode(rawValue: defaults.string(forKey: Keys.interceptMode) ?? "") ?? .jsInjection }
+        set { defaults.set(newValue.rawValue, forKey: Keys.interceptMode) }
     }
 
     var isCAInstalled: Bool {

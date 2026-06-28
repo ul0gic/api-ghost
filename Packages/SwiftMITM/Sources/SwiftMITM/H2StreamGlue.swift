@@ -7,7 +7,8 @@ enum H2StreamGlue {
         inboundStream: Channel,
         upstreamMux: NIOHTTP2Handler.StreamMultiplexer,
         authority: String,
-        sink: CaptureEventSink
+        sink: CaptureEventSink,
+        captureBodyLimit: Int = 0
     ) -> EventLoopFuture<Void> {
         let loop = inboundStream.eventLoop
         let requestID = UUID()
@@ -20,7 +21,8 @@ enum H2StreamGlue {
                         direction: .response,
                         requestID: requestID,
                         authority: authority,
-                        sink: sink
+                        sink: sink,
+                        captureBodyLimit: captureBodyLimit
                     ),
                     pair.value.1
                 ])
@@ -33,7 +35,8 @@ enum H2StreamGlue {
                         direction: .request,
                         requestID: requestID,
                         authority: authority,
-                        sink: sink
+                        sink: sink,
+                        captureBodyLimit: captureBodyLimit
                     ),
                     pair.value.0
                 ])

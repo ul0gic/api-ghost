@@ -8,12 +8,14 @@ private let logger = Logger(subsystem: "corelift.api-ghost", category: "Settings
 
 enum SettingsTab: String, CaseIterable {
     case general = "General"
+    case certificates = "Certificates"
     case filtering = "Filtering"
     case dataManagement = "Data Management"
 
     var icon: String {
         switch self {
         case .general: return "gear"
+        case .certificates: return "lock.shield"
         case .filtering: return "line.3.horizontal.decrease.circle"
         case .dataManagement: return "cylinder.split.1x2"
         }
@@ -32,6 +34,12 @@ struct SettingsView: View {
                     Label(SettingsTab.general.rawValue, systemImage: SettingsTab.general.icon)
                 }
                 .tag(SettingsTab.general)
+
+            CertificatesSettingsView()
+                .tabItem {
+                    Label(SettingsTab.certificates.rawValue, systemImage: SettingsTab.certificates.icon)
+                }
+                .tag(SettingsTab.certificates)
 
             FilteringSettingsTab()
                 .tabItem {
@@ -65,6 +73,7 @@ struct GeneralSettingsTab: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 aboutSection
+                InterceptModeSection()
                 recordingSection
                 defaultURLSection
                 appearanceSection

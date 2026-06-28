@@ -70,11 +70,15 @@ public struct CapturedResponseHead: Sendable {
 
 public enum CaptureEvent: Sendable {
     case requestHead(CapturedRequestHead)
-    case requestBodyChunk(requestID: UUID, byteCount: Int)
-    case requestEnd(requestID: UUID)
+    /// `bytes` is the captured (bounded) slice of this chunk; `byteCount` is the chunk's full size.
+    case requestBodyChunk(requestID: UUID, bytes: [UInt8], byteCount: Int)
+    /// `truncated` is true when the full body exceeded the capture limit, so `bytes` are partial.
+    case requestEnd(requestID: UUID, truncated: Bool)
     case responseHead(CapturedResponseHead)
-    case responseBodyChunk(requestID: UUID, byteCount: Int)
-    case responseEnd(requestID: UUID)
+    /// `bytes` is the captured (bounded) slice of this chunk; `byteCount` is the chunk's full size.
+    case responseBodyChunk(requestID: UUID, bytes: [UInt8], byteCount: Int)
+    /// `truncated` is true when the full body exceeded the capture limit, so `bytes` are partial.
+    case responseEnd(requestID: UUID, truncated: Bool)
     case streamError(requestID: UUID, message: String)
 }
 

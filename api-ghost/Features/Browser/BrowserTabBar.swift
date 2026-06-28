@@ -4,10 +4,25 @@ import SwiftUI
 
 struct BrowserTabBar: View {
     @Bindable var manager: BrowserTabManager
+    @State private var appState = AppState.shared
     @Environment(\.accessibilityReduceMotion)
     private var reduceMotion
 
     var body: some View {
+        VStack(spacing: 0) {
+            if let notice = manager.proxyFallbackNotice {
+                fallbackBanner(notice)
+            }
+            tabRow
+        }
+        .background(closeActiveTabShortcut)
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: manager.proxyFallbackNotice)
+        .task(id: appState.interceptMode) {
+            await manager.applyInterceptionState()
+        }
+    }
+
+    private var tabRow: some View {
         HStack(spacing: 0) {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 0) {
@@ -34,7 +49,39 @@ struct BrowserTabBar: View {
                 .fill(Color.ghostBorder)
                 .frame(height: 1)
         }
-        .background(closeActiveTabShortcut)
+    }
+
+    private func fallbackBanner(_ notice: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "exclamationmark.shield.fill")
+                .font(.system(size: 12))
+                .foregroundColor(.ghostAccent)
+
+            Text(notice)
+                .font(.system(size: 12))
+                .foregroundColor(.ghostTextPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Spacer(minLength: 0)
+
+            Button(action: manager.dismissProxyFallbackNotice) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundColor(.ghostTextMuted)
+                    .frame(width: 18, height: 18)
+            }
+            .buttonStyle(.plain)
+            .help("Dismiss")
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(Color.ghostSurfaceRaised)
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(Color.ghostBorder)
+                .frame(height: 1)
+        }
+        .accessibilityElement(children: .combine)
     }
 
     private var newTabButton: some View {

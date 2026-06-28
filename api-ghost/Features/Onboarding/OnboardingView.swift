@@ -3,208 +3,169 @@ import SwiftUI
 // MARK: - Onboarding Step
 
 enum OnboardingStep: Int, CaseIterable {
-    case welcome = 0
-    case complete = 1
+    case modeSelection = 0
+    case certificates = 1
 }
 
 // MARK: - Onboarding View
 
 struct OnboardingView: View {
-    @State private var currentStep: OnboardingStep = .welcome
-
     let onComplete: () -> Void
+
+    @State private var step: OnboardingStep = .modeSelection
+    @State private var selectedMode: InterceptMode?
+    @Environment(\.accessibilityReduceMotion)
+    private var reduceMotion
 
     var body: some View {
         ZStack {
             Color.ghostBase.ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                OnboardingProgressIndicator(currentStep: currentStep)
-                    .padding(.top, 40)
-                    .padding(.bottom, 32)
-
-                Group {
-                    switch currentStep {
-                    case .welcome:
-                        WelcomeStepView {
-                            withAnimation(.easeInOut(duration: 0.3)) {
-                                currentStep = .complete
-                            }
-                        }
-                    case .complete:
-                        OnboardingCompleteView {
-                            completeOnboarding()
-                        }
-                    }
+            Group {
+                switch step {
+                case .modeSelection:
+                    ModeSelectionStep(selectedMode: $selectedMode, onContinue: continueFromModeSelection, onSkip: skip)
+                case .certificates:
+                    CertificateOnboardingStep(onBack: { advance(to: .modeSelection) }, onFinish: finish)
                 }
-                .frame(maxWidth: 600)
-                .padding(.horizontal, 40)
-
-                Spacer()
             }
+            .frame(maxWidth: 760)
+            .padding(40)
         }
-        .frame(minWidth: 700, minHeight: 500)
+        .frame(minWidth: 800, minHeight: 600)
     }
 
-    private func completeOnboarding() {
+    private func continueFromModeSelection() {
+        guard let mode = selectedMode else { return }
+        AppState.shared.interceptMode = mode
+        if mode == .networkProxy {
+            advance(to: .certificates)
+        } else {
+            finish()
+        }
+    }
+
+    private func skip() {
+        AppState.shared.interceptMode = .jsInjection
+        finish()
+    }
+
+    private func advance(to next: OnboardingStep) {
+        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.3)) {
+            step = next
+        }
+    }
+
+    private func finish() {
         Preferences.shared.hasCompletedOnboarding = true
         onComplete()
     }
 }
 
-// MARK: - Progress Indicator
+// MARK: - Mode Selection Step
 
-struct OnboardingProgressIndicator: View {
-    let currentStep: OnboardingStep
-
-    var body: some View {
-        HStack(spacing: 8) {
-            ForEach(OnboardingStep.allCases, id: \.rawValue) { step in
-                Circle()
-                    .fill(step.rawValue <= currentStep.rawValue ? Color.ghostAccent : Color.ghostBorder)
-                    .frame(width: 8, height: 8)
-            }
-        }
-    }
-}
-
-// MARK: - Welcome Step
-
-struct WelcomeStepView: View {
+private struct ModeSelectionStep: View {
+    @Binding var selectedMode: InterceptMode?
     let onContinue: () -> Void
+    let onSkip: () -> Void
 
     var body: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 0) {
             ZStack {
-                Circle()
+                RoundedRectangle(cornerRadius: 14)
                     .fill(Color.ghostAccentMuted)
-                    .frame(width: 100, height: 100)
-
-                Image(systemName: "network")
-                    .font(.system(size: 44, weight: .light))
+                    .frame(width: 56, height: 56)
+                Image(systemName: "dot.radiowaves.left.and.right")
+                    .font(.system(size: 26, weight: .light))
                     .foregroundColor(.ghostAccent)
             }
+            .padding(.bottom, 24)
 
-            VStack(spacing: 12) {
-                Text("Welcome to APIGhost")
-                    .font(.system(size: 28, weight: .bold))
-                    .foregroundColor(.ghostTextPrimary)
+            Text("Choose your capture mode")
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundColor(.ghostTextPrimary)
+            Text("APIGhost can capture API traffic two ways. You can change this later in Settings.")
+                .font(.system(size: 14))
+                .foregroundColor(.ghostTextSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.top, 8)
+                .padding(.bottom, 40)
 
-                Text("Capture, inspect, and analyze API traffic from any web application")
-                    .font(.system(size: 16))
-                    .foregroundColor(.ghostTextSecondary)
-                    .multilineTextAlignment(.center)
+            HStack(alignment: .top, spacing: 16) {
+                ForEach(InterceptModeDescriptor.all) { descriptor in
+                    ModeCard(descriptor: descriptor, isSelected: selectedMode == descriptor.mode) {
+                        selectedMode = descriptor.mode
+                    }
+                }
             }
 
-            VStack(alignment: .leading, spacing: 16) {
-                FeatureRow(
-                    icon: "eye.fill",
-                    title: "Capture Traffic",
-                    description: "See every API call your browser makes in real-time"
-                )
-
-                FeatureRow(
-                    icon: "doc.text.magnifyingglass",
-                    title: "Inspect Requests",
-                    description: "View headers, bodies, and response data with syntax highlighting"
-                )
-
-                FeatureRow(
-                    icon: "map.fill",
-                    title: "Map Endpoints",
-                    description: "Automatically discover and organize API endpoints"
-                )
-
-                FeatureRow(
-                    icon: "square.and.arrow.up.fill",
-                    title: "Export Data",
-                    description: "Export captures for analysis or LLM processing"
-                )
+            HStack {
+                Button("I'll decide later", action: onSkip)
+                    .buttonStyle(.plain)
+                    .font(.system(size: 12))
+                    .foregroundColor(.ghostTextMuted)
+                Spacer()
+                Button(action: onContinue) {
+                    Text("Continue")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(selectedMode == nil ? .ghostTextMuted : .ghostBase)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 9)
+                        .background(selectedMode == nil ? Color.ghostSurfaceRaised : Color.ghostAccent)
+                        .cornerRadius(7)
+                }
+                .buttonStyle(.plain)
+                .disabled(selectedMode == nil)
             }
-            .padding(.top, 16)
-
-            Button(action: onContinue) {
-                Text("Get Started")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.ghostBase)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(Color.ghostAccent)
-                    .cornerRadius(8)
-            }
-            .buttonStyle(.plain)
-            .padding(.top, 24)
+            .padding(.top, 32)
         }
     }
 }
 
-// MARK: - Feature Row
+// MARK: - Certificate Onboarding Step
 
-struct FeatureRow: View {
-    let icon: String
-    let title: String
-    let description: String
+private struct CertificateOnboardingStep: View {
+    let onBack: () -> Void
+    let onFinish: () -> Void
+
+    @State private var model = CertificateLifecycleModel()
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: icon)
-                .font(.system(size: 18))
-                .foregroundColor(.ghostAccent)
-                .frame(width: 24)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.system(size: 14, weight: .semibold))
+        VStack(alignment: .leading, spacing: 24) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Set up the CA certificate")
+                    .font(.system(size: 22, weight: .semibold))
                     .foregroundColor(.ghostTextPrimary)
-
-                Text(description)
+                Text("""
+                Network Proxy needs a local CA to decrypt TLS. Generate it, then install and trust it — \
+                macOS prompts for your password.
+                """)
                     .font(.system(size: 13))
                     .foregroundColor(.ghostTextSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            ScrollView {
+                CertificateAuthoritySection(model: model)
+            }
+
+            HStack {
+                Button("Back", action: onBack)
+                    .buttonStyle(.bordered)
+                Spacer()
+                Button(action: onFinish) {
+                    Text(model.status == .installedTrusted ? "Finish" : "Finish — set up later")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.ghostBase)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 9)
+                        .background(Color.ghostAccent)
+                        .cornerRadius(7)
+                }
+                .buttonStyle(.plain)
             }
         }
-    }
-}
-
-// MARK: - Onboarding Complete
-
-struct OnboardingCompleteView: View {
-    let onStart: () -> Void
-
-    var body: some View {
-        VStack(spacing: 24) {
-            ZStack {
-                Circle()
-                    .fill(Color.ghostSuccess.opacity(0.2))
-                    .frame(width: 100, height: 100)
-
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 50))
-                    .foregroundColor(.ghostSuccess)
-            }
-
-            VStack(spacing: 12) {
-                Text("You're All Set!")
-                    .font(.system(size: 28, weight: .bold))
-                    .foregroundColor(.ghostTextPrimary)
-
-                Text("APIGhost is ready to capture API traffic. Browse to any website and watch the requests flow in.")
-                    .font(.system(size: 16))
-                    .foregroundColor(.ghostTextSecondary)
-                    .multilineTextAlignment(.center)
-            }
-
-            Button(action: onStart) {
-                Text("Start Exploring")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.ghostBase)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(Color.ghostAccent)
-                    .cornerRadius(8)
-            }
-            .buttonStyle(.plain)
-            .padding(.top, 24)
-        }
+        .onAppear { model.refresh() }
     }
 }
 
@@ -213,5 +174,5 @@ struct OnboardingCompleteView: View {
 #Preview {
     OnboardingView {}
         .preferredColorScheme(.dark)
-        .frame(width: 800, height: 600)
+        .frame(width: 900, height: 700)
 }
