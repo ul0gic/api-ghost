@@ -63,7 +63,7 @@ struct CheckboxRow: View {
             HStack(spacing: 10) {
                 Image(systemName: isChecked ? "checkmark.square.fill" : "square")
                     .font(.system(size: 14))
-                    .foregroundColor(isChecked ? .ghostAccent : .ghostTextMuted)
+                    .foregroundColor(isChecked ? .ghostAccentSoft : .ghostTextMuted)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
                         .font(.system(size: 13))
@@ -96,36 +96,6 @@ struct ExportStatItem: View {
                 .font(.system(size: 11))
                 .foregroundColor(.ghostTextMuted)
         }
-    }
-}
-
-// MARK: - Button Styles
-
-struct PrimaryButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(size: 13, weight: .medium))
-            .foregroundColor(.ghostBase)
-            .padding(.horizontal, 20)
-            .padding(.vertical, 8)
-            .background(configuration.isPressed ? Color.ghostAccentHover : Color.ghostAccent)
-            .cornerRadius(6)
-    }
-}
-
-struct SecondaryButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(size: 13, weight: .medium))
-            .foregroundColor(.ghostTextSecondary)
-            .padding(.horizontal, 20)
-            .padding(.vertical, 8)
-            .background(configuration.isPressed ? Color.ghostSurfaceRaised : Color.ghostSurface)
-            .cornerRadius(6)
-            .overlay(
-                RoundedRectangle(cornerRadius: 6)
-                    .stroke(Color.ghostBorder, lineWidth: 1)
-            )
     }
 }
 

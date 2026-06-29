@@ -109,21 +109,19 @@ struct SidebarFooterView: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            SidebarFooterButton(
-                title: "Export DB",
-                icon: "arrow.up",
-                role: .export
-            ) {
+            Button {
                 showExportDialog = true
+            } label: {
+                footerLabel(title: "Export Session", icon: "square.and.arrow.up")
             }
+            .buttonStyle(GhostButtonStyle(role: .accent, fullWidth: true))
 
-            SidebarFooterButton(
-                title: "Wipe Session",
-                icon: "trash",
-                role: .destructive
-            ) {
+            Button {
                 showWipeConfirmation = true
+            } label: {
+                footerLabel(title: "Wipe Session", icon: "trash")
             }
+            .buttonStyle(GhostButtonStyle(role: .destructive, fullWidth: true))
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
@@ -141,72 +139,13 @@ struct SidebarFooterView: View {
             ExportDialogView()
         }
     }
-}
 
-// MARK: - Sidebar Footer Button
-
-enum SidebarFooterButtonRole {
-    case destructive
-    case export
-}
-
-struct SidebarFooterButton: View {
-    let title: String
-    let icon: String
-    let role: SidebarFooterButtonRole
-    let action: () -> Void
-
-    @State private var isHovered: Bool = false
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 6) {
-                Image(systemName: icon)
-                    .font(.system(size: 11))
-                Text(title)
-                    .font(.system(size: 12))
-            }
-            .foregroundColor(foregroundColor)
-            .frame(maxWidth: .infinity)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 7)
-            .background(backgroundColor)
-            .clipShape(RoundedRectangle(cornerRadius: 5))
-            .overlay(
-                RoundedRectangle(cornerRadius: 5)
-                    .stroke(borderColor, lineWidth: 1)
-            )
-        }
-        .buttonStyle(.plain)
-        .onHover { hovering in
-            isHovered = hovering
-        }
-    }
-
-    private var foregroundColor: Color {
-        switch role {
-        case .destructive:
-            return isHovered ? .white : .ghostError
-        case .export:
-            return isHovered ? .ghostBase : .ghostAccent
-        }
-    }
-
-    private var backgroundColor: Color {
-        switch role {
-        case .destructive:
-            return isHovered ? .ghostError : .clear
-        case .export:
-            return isHovered ? .ghostAccent : .ghostAccentMuted
-        }
-    }
-
-    private var borderColor: Color {
-        switch role {
-        case .destructive:
-            return .ghostError
-        case .export:
-            return .ghostAccent
+    private func footerLabel(title: String, icon: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 11))
+            Text(title)
+                .font(.system(size: 12))
         }
     }
 }

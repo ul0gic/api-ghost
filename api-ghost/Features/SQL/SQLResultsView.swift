@@ -8,8 +8,8 @@ struct SQLResultsView: View {
     @State private var hoveredRowIndex: Int?
     @State private var hoveredColumnIndex: Int?
     @State private var showingExportMenu: Bool = false
-    @State private var showingCaptureDetail: Bool = false
-    @State private var selectedCapture: Capture?
+    @State private var captureDetailItem: CaptureDetailItem?
+    @State private var rowDetailItem: RowDetailItem?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -31,17 +31,11 @@ struct SQLResultsView: View {
             ResultsStatusBar(viewModel: viewModel)
         }
         .background(Color.ghostBase)
-        .sheet(isPresented: $showingCaptureDetail) {
-            if let capture = selectedCapture {
-                SQLCaptureDetailView(capture: capture) { showingCaptureDetail = false }
-            }
+        .sheet(item: $captureDetailItem) { item in
+            SQLCaptureDetailView(capture: item.capture) { captureDetailItem = nil }
         }
-        .sheet(isPresented: $viewModel.showingRowDetail) {
-            if let result = viewModel.queryResult, let row = viewModel.selectedRow {
-                RowDetailSheet(
-                    columns: result.columns, row: row
-                ) { viewModel.showingRowDetail = false }
-            }
+        .sheet(item: $rowDetailItem) { item in
+            RowDetailSheet(columns: item.columns, row: item.row) { rowDetailItem = nil }
         }
     }
 
@@ -73,27 +67,32 @@ struct SQLResultsView: View {
     }
 
     private func handleRowTap(rowIndex: Int, columns: [String], row: [DatabaseValue]) {
-        if let idIndex = columns.firstIndex(where: { $0.lowercased() == "id" }) {
-            if case .int64(let captureId) = row[idIndex].storage {
-                Task {
-                    if let capture = await viewModel.fetchCapture(byId: captureId) {
-                        await MainActor.run {
-                            selectedCapture = capture
-                            showingCaptureDetail = true
-                        }
-                    } else {
-                        await MainActor.run {
-                            viewModel.selectedRowIndex = rowIndex
-                            viewModel.showingRowDetail = true
-                        }
-                    }
+        if let idIndex = columns.firstIndex(where: { $0.lowercased() == "id" }),
+           case .int64(let captureId) = row[idIndex].storage {
+            Task {
+                if let capture = await viewModel.fetchCapture(byId: captureId) {
+                    await MainActor.run { captureDetailItem = CaptureDetailItem(capture: capture) }
+                } else {
+                    await MainActor.run { rowDetailItem = RowDetailItem(columns: columns, row: row) }
                 }
             }
         } else {
-            viewModel.selectedRowIndex = rowIndex
-            viewModel.showingRowDetail = true
+            rowDetailItem = RowDetailItem(columns: columns, row: row)
         }
     }
+}
+
+// MARK: - Sheet Items
+
+private struct CaptureDetailItem: Identifiable {
+    let id = UUID()
+    let capture: Capture
+}
+
+private struct RowDetailItem: Identifiable {
+    let id = UUID()
+    let columns: [String]
+    let row: [DatabaseValue]
 }
 
 // MARK: - Preview

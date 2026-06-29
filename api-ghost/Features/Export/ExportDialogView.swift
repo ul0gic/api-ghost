@@ -203,7 +203,7 @@ struct ExportDialogView: View {
 
     private var dialogFooter: some View {
         HStack {
-            Button("Cancel") { dismiss() }.buttonStyle(SecondaryButtonStyle())
+            Button("Cancel") { dismiss() }.buttonStyle(GhostButtonStyle(role: .neutral))
             Spacer()
             Button(action: performExport) {
                 if isExporting {
@@ -214,7 +214,7 @@ struct ExportDialogView: View {
                     Text("Export")
                 }
             }
-            .buttonStyle(PrimaryButtonStyle())
+            .buttonStyle(GhostButtonStyle(role: .accent))
             .disabled(isExporting || options.filename.isEmpty)
         }
         .padding(16)

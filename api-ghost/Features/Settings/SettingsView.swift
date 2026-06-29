@@ -69,6 +69,10 @@ struct GeneralSettingsTab: View {
     @State private var autoStartRecording: Bool = Preferences.shared.autoStartRecording
     @State private var defaultURL: String = ""
 
+    private var appVersion: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
@@ -98,7 +102,7 @@ struct GeneralSettingsTab: View {
                         Text("APIGhost")
                             .font(.system(size: 20, weight: .bold))
                             .foregroundColor(.ghostTextPrimary)
-                        Text("Version 1.0.0")
+                        Text("Version \(appVersion)")
                             .font(.system(size: 13))
                             .foregroundColor(.ghostTextMuted)
                         Text("API traffic capture and analysis tool for macOS")
@@ -129,7 +133,7 @@ struct GeneralSettingsTab: View {
                     Spacer()
                     Toggle("", isOn: $autoStartRecording)
                         .toggleStyle(.switch)
-                        .tint(.ghostAccent)
+                        .tint(.ghostAccentSoft)
                         .onChange(of: autoStartRecording) { _, newValue in
                             Preferences.shared.autoStartRecording = newValue
                         }
@@ -280,7 +284,7 @@ struct ExportCheckboxRow: View {
             HStack(spacing: 10) {
                 Image(systemName: isChecked ? "checkmark.square.fill" : "square")
                     .font(.system(size: 14))
-                    .foregroundColor(isChecked ? .ghostAccent : .ghostTextMuted)
+                    .foregroundColor(isChecked ? .ghostAccentSoft : .ghostTextMuted)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
                         .font(.system(size: 12))
@@ -313,20 +317,6 @@ struct SettingsSectionHeader: View {
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundColor(.ghostTextPrimary)
         }
-    }
-}
-
-// MARK: - Button Styles
-
-struct GhostPrimaryButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(size: 13, weight: .medium))
-            .foregroundColor(.ghostBase)
-            .padding(.horizontal, 20)
-            .padding(.vertical, 8)
-            .background(configuration.isPressed ? Color.ghostAccent.opacity(0.8) : Color.ghostAccent)
-            .cornerRadius(6)
     }
 }
 

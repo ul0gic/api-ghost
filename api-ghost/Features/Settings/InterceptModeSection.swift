@@ -40,7 +40,7 @@ struct InterceptModeSection: View {
                             NotificationCenter.default.post(name: .openSettingsToTab, object: SettingsTab.certificates)
                         }
                         .buttonStyle(.bordered)
-                        .tint(.ghostAccent)
+                        .tint(.ghostAccentSoft)
                         .controlSize(.small)
                     }
                     .padding(10)

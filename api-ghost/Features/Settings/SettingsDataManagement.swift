@@ -145,8 +145,8 @@ struct DataManagementSettingsTab: View {
                     }
                 }
             }
-            .buttonStyle(GhostPrimaryButtonStyle())
-            .disabled(isExporting || requestCount == 0)
+            .buttonStyle(GhostButtonStyle(role: .accent))
+            .disabled(isExporting)
         }
     }
 
@@ -204,7 +204,7 @@ struct DataManagementSettingsTab: View {
             HStack(spacing: 10) {
                 Image(systemName: exportBackupBeforeWipe ? "checkmark.square.fill" : "square")
                     .font(.system(size: 14))
-                    .foregroundColor(exportBackupBeforeWipe ? .ghostAccent : .ghostTextMuted)
+                    .foregroundColor(exportBackupBeforeWipe ? .ghostAccentSoft : .ghostTextMuted)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Export backup before wiping")
                         .font(.system(size: 13)).foregroundColor(.ghostTextPrimary)
@@ -227,13 +227,13 @@ struct DataManagementSettingsTab: View {
                         .scaleEffect(0.7)
                 } else {
                     HStack(spacing: 6) {
-                        Image(systemName: "trash.fill")
+                        Image(systemName: "trash")
                         Text("Wipe All Data")
                     }
                 }
             })
-            .buttonStyle(WipeDestructiveButtonStyle())
-            .disabled(isWiping || requestCount == 0)
+            .buttonStyle(GhostButtonStyle(role: .destructive))
+            .disabled(isWiping)
         }
     }
 

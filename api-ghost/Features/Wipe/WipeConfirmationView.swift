@@ -158,7 +158,7 @@ struct WipeConfirmationView: View {
             HStack(spacing: 10) {
                 Image(systemName: exportBackupFirst ? "checkmark.square.fill" : "square")
                     .font(.system(size: 14))
-                    .foregroundColor(exportBackupFirst ? .ghostAccent : .ghostTextMuted)
+                    .foregroundColor(exportBackupFirst ? .ghostAccentSoft : .ghostTextMuted)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Export backup before wiping")
@@ -202,7 +202,7 @@ struct WipeConfirmationView: View {
             Button("Cancel") {
                 dismiss()
             }
-            .buttonStyle(WipeSecondaryButtonStyle())
+            .buttonStyle(GhostButtonStyle(role: .neutral))
 
             Spacer()
 
@@ -218,7 +218,7 @@ struct WipeConfirmationView: View {
                     }
                 }
             }
-            .buttonStyle(WipeDestructiveButtonStyle())
+            .buttonStyle(GhostButtonStyle(role: .destructive))
             .disabled(isWiping)
         }
         .padding(16)
@@ -283,36 +283,6 @@ struct WipeConfirmationView: View {
                 }
             }
         }
-    }
-}
-
-// MARK: - Button Styles
-
-struct WipeSecondaryButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(size: 13, weight: .medium))
-            .foregroundColor(.ghostTextSecondary)
-            .padding(.horizontal, 20)
-            .padding(.vertical, 8)
-            .background(configuration.isPressed ? Color.ghostSurfaceRaised : Color.ghostSurface)
-            .cornerRadius(6)
-            .overlay(
-                RoundedRectangle(cornerRadius: 6)
-                    .stroke(Color.ghostBorder, lineWidth: 1)
-            )
-    }
-}
-
-struct WipeDestructiveButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(size: 13, weight: .medium))
-            .foregroundColor(.white)
-            .padding(.horizontal, 20)
-            .padding(.vertical, 8)
-            .background(configuration.isPressed ? Color.ghostError.opacity(0.8) : Color.ghostError)
-            .cornerRadius(6)
     }
 }
 

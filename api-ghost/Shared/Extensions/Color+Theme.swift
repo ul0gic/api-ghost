@@ -49,6 +49,8 @@ extension Color {
 
     static let ghostAccentHover = Color(hex: "#00B8D9")
 
+    static let ghostAccentSoft = Color(hex: "#1AA6C2")
+
     static let ghostAccentMuted = Color(hex: "#003844")
 
     // MARK: - Text

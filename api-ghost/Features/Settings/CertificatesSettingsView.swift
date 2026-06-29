@@ -169,7 +169,7 @@ struct CertificateAuthoritySection: View {
         } label: {
             Label(title, systemImage: systemImage)
         }
-        .buttonStyle(GhostPrimaryButtonStyle())
+        .buttonStyle(GhostButtonStyle(role: .accent))
         .disabled(model.isBusy)
     }
 
@@ -180,7 +180,7 @@ struct CertificateAuthoritySection: View {
             Label(title, systemImage: systemImage)
         }
         .buttonStyle(.bordered)
-        .tint(.ghostAccent)
+        .tint(.ghostAccentSoft)
         .disabled(model.isBusy)
     }
 

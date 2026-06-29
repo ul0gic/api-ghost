@@ -32,10 +32,6 @@ final class SQLViewModel {
 
     var queryRowLimit: Int = 1000
 
-    var selectedRowIndex: Int?
-
-    var showingRowDetail: Bool = false
-
     var queryBuilderFilters: [QueryBuilderFilter] = []
 
     var timeRangeFilter: TimeRangeFilter = .all
@@ -84,13 +80,6 @@ final class SQLViewModel {
 
         guard startIndex < rows.count else { return [] }
         return Array(rows[startIndex..<endIndex])
-    }
-
-    var selectedRow: [DatabaseValue]? {
-        guard let index = selectedRowIndex, let result = queryResult, index < result.rows.count else {
-            return nil
-        }
-        return result.rows[index]
     }
 
     // MARK: - Initialization

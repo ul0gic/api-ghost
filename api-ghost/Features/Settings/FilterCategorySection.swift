@@ -85,7 +85,7 @@ struct FilterCategoryCard: View {
             .labelsHidden()
             .toggleStyle(.switch)
             .controlSize(.small)
-            .tint(.ghostAccent)
+            .tint(.ghostAccentSoft)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
@@ -136,7 +136,7 @@ struct FilterRuleRow: View {
             .labelsHidden()
             .toggleStyle(.switch)
             .controlSize(.mini)
-            .tint(.ghostAccent)
+            .tint(.ghostAccentSoft)
             .disabled(!categoryEnabled)
         }
         .padding(.horizontal, 12)

@@ -22,13 +22,15 @@ Browse a target in an embedded browser, capture its API traffic, and explore it 
 APIGhost is a **focused, passive** API reconnaissance tool. You browse a site in an integrated WebView; APIGhost records the API traffic that browser generates, stores it in SQLite, and lets you explore and export it.
 
 - **Passive only.** It captures and analyzes. It never probes, fuzzes, or attacks.
-- **No AI in the app.** APIGhost captures and exports. The analysis happens outside, in an LLM you trust.
 - **The export is the product.** A clean, complete SQLite is the deliverable. Everything else exists to produce one.
 - **Isolated and session-based.** Only the embedded browser's traffic is captured, one ephemeral session at a time.
 
 <div align="center">
-<img src="docs/assets/browser-capture.webp" alt="Live capture: embedded browser, per-domain breakdown, request inspector" width="49%" />
-<img src="docs/assets/database-explorer.webp" alt="Database Explorer: schema, SQL editor, response inspector" width="49%" />
+<img src="docs/assets/browser.webp" alt="Browser capture" width="49%" />
+<img src="docs/assets/api-map.webp" alt="API Map" width="49%" />
+<br/>
+<img src="docs/assets/database-explorer.webp" alt="Database Explorer" width="49%" />
+<img src="docs/assets/filter-settings.webp" alt="Filter settings" width="49%" />
 </div>
 
 ## Install
@@ -78,13 +80,13 @@ flowchart TB
     classDef default fill:#00D9FF,stroke:#00B8D9,color:#0A0A0A,stroke-width:1px;
 ```
 
+**Dual interception.** You browse a target in the embedded WebView, and APIGhost records the API traffic it generates. JS interception needs zero setup and no certificate. Network-proxy mode adds TLS MITM through a local `SwiftMITM` engine over SwiftNIO, routed via `WKWebsiteDataStore.proxyConfigurations`. It captures what page-context JS can't see: service-worker traffic, browser-managed headers, and raw bytes on the wire.
+
 **Schemaless SQLite.** Captures are stored raw. Request, response, headers, bodies, timing, and metadata all live in one flat, queryable table. There's no rigid ORM shape to fight, and the single `.sqlite` file is the export, so handing it to an LLM (or `sqlite3`) needs zero conversion.
 
-**Dual interception.** JS interception needs zero setup and no certificate. Network-proxy mode adds TLS MITM through a local `SwiftMITM` engine over SwiftNIO, routed via `WKWebsiteDataStore.proxyConfigurations`. It captures what page-context JS can't see: service-worker traffic, browser-managed headers, and raw bytes on the wire.
+## Security Use Cases
 
-## Why: security use cases
-
-APIGhost is for any time you need to know *exactly* what an app talks to. The export feeds an LLM that turns hundreds of captured calls into a documented API surface.
+APIGhost is for any time you need to know *exactly* what an app talks to.
 
 **Offensive / research**
 - Reverse-engineer undocumented internal and partner APIs.
