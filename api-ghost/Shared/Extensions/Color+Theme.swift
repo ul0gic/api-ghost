@@ -37,7 +37,9 @@ extension Color {
 
     static let ghostSurfaceRaised = Color(hex: "#1A1A1A")
 
-    static let ghostInput = Color(hex: "#0F0F0F")
+    static let ghostSurfaceActive = Color(hex: "#242424")
+
+    static let ghostInput = Color(hex: "#242424")
 
     static let ghostBorder = Color(hex: "#222222")
 

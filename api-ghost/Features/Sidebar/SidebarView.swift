@@ -8,7 +8,14 @@ struct SidebarView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                SidebarSection(title: "NAVIGATION") {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("NAVIGATION")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.ghostTextMuted)
+                        .padding(.horizontal, 12)
+                        .padding(.bottom, 6)
+                        .frame(maxWidth: .infinity, minHeight: 48, alignment: .bottomLeading)
+
                     VStack(alignment: .leading, spacing: 4) {
                         ForEach(NavigationTab.allCases) { tab in
                             NavigationButton(
@@ -19,6 +26,8 @@ struct SidebarView: View {
                             }
                         }
                     }
+                    .padding(.horizontal, 12)
+                    .padding(.bottom, 12)
                 }
 
                 Divider()
@@ -101,19 +110,19 @@ struct SidebarFooterView: View {
     var body: some View {
         VStack(spacing: 8) {
             SidebarFooterButton(
-                title: "Wipe Session",
-                icon: "trash",
-                role: .destructive
-            ) {
-                showWipeConfirmation = true
-            }
-
-            SidebarFooterButton(
                 title: "Export DB",
                 icon: "arrow.up",
                 role: .export
             ) {
                 showExportDialog = true
+            }
+
+            SidebarFooterButton(
+                title: "Wipe Session",
+                icon: "trash",
+                role: .destructive
+            ) {
+                showWipeConfirmation = true
             }
         }
         .padding(.horizontal, 16)

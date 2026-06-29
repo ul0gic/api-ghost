@@ -158,7 +158,7 @@ struct BrowserTabItem: View {
         .padding(.horizontal, 10)
         .frame(minWidth: 120, maxWidth: 200)
         .frame(height: 36)
-        .background(isActive ? Color.ghostSurfaceRaised : Color.ghostSurface)
+        .background(isActive ? Color.ghostSurfaceActive : Color.ghostSurface)
         .overlay(alignment: .trailing) {
             Rectangle()
                 .fill(Color.ghostBorder)
@@ -167,7 +167,7 @@ struct BrowserTabItem: View {
         .overlay(alignment: .bottom) {
             if isActive {
                 Rectangle()
-                    .fill(Color.ghostSurfaceRaised)
+                    .fill(Color.ghostSurfaceActive)
                     .frame(height: 1)
             }
         }

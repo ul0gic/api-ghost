@@ -25,9 +25,15 @@ struct DomainsSidebarView: View {
                         .font(.system(size: 10, weight: .medium, design: .monospaced))
                         .foregroundColor(.ghostTextMuted)
                 }
+
+                Image("AppLogoMark")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 28, height: 28)
             }
             .padding(.horizontal, 12)
-            .padding(.vertical, 10)
+            .padding(.bottom, 6)
+            .frame(height: 48, alignment: .bottom)
 
             Divider()
                 .background(Color.ghostBorder)

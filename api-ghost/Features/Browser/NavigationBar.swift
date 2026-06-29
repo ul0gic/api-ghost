@@ -92,7 +92,7 @@ struct URLTextField: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(Color.ghostInput)
+        .background(Color.ghostSurfaceActive)
         .cornerRadius(6)
         .overlay(
             RoundedRectangle(cornerRadius: 6)
@@ -130,9 +130,9 @@ struct RecordingIndicator: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
             .background(isRecording ? Color.ghostError.opacity(0.1) : Color.ghostAccentMuted)
-            .cornerRadius(4)
+            .cornerRadius(6)
             .overlay(
-                RoundedRectangle(cornerRadius: 4)
+                RoundedRectangle(cornerRadius: 6)
                     .stroke(isRecording ? Color.ghostError.opacity(0.5) : Color.ghostAccent.opacity(0.5), lineWidth: 1)
             )
         }

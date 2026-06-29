@@ -113,7 +113,7 @@ struct QuickQueryButton: View {
             .foregroundColor(isHovered ? .ghostAccent : .ghostTextSecondary)
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
-            .background(isHovered ? Color.ghostAccentMuted : Color.ghostSurfaceRaised)
+            .background(isHovered ? Color.ghostAccentMuted : Color.ghostSurfaceActive)
             .cornerRadius(6)
             .overlay(
                 RoundedRectangle(cornerRadius: 6)
