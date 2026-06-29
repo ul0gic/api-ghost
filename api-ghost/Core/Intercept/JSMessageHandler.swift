@@ -226,12 +226,12 @@ final class JSMessageHandler: NSObject, WKScriptMessageHandler {
     // MARK: - Stream Chunk Handling
 
     private func handleStreamChunk(dict: [String: Any]) {
+        guard TrafficCapture.shared.isCapturing else { return }
+
         guard let id = dict["id"] as? String,
               let chunk = dict["chunk"] as? String else { return }
 
         let chunkIndex = dict["chunkIndex"] as? Int ?? -1
-        let chunkSize = dict["chunkSize"] as? Int ?? chunk.count
-        let url = dict["url"] as? String ?? ""
 
         var captureUUID = id
         withLock { captureUUID = pendingRequests[id]?.uuid ?? id }
@@ -250,8 +250,6 @@ final class JSMessageHandler: NSObject, WKScriptMessageHandler {
                 logger.error("Failed to save stream chunk: \(error)")
             }
         }
-
-        logger.debug("Stream chunk #\(chunkIndex): \(chunkSize) bytes from \(url)")
     }
 
     // MARK: - Connection Utilities
